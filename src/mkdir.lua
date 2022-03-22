@@ -1,18 +1,18 @@
 --!lua
-local args = ({...})[1]
+local args = ...
 
-if not args[2] then
-    coroutine.yield("syscall", "write", 1, "Usage: mkdir <path>\n")
-    coroutine.yield("syscall", "exit", 0)
+local sys = require("syscalls")
+local errx = require("errors").errx
+
+if #args == 0 then
+  io.stderr:write("Usage: " .. args[0] .. " <path>\n")
+  sys.exit(1)
 end
 
-local s, e = coroutine.yield("syscall", "mkdir", args[2])
-if not s then
-    coroutine.yield("syscall", "write", 1, args[1] .. ": " .. (
-        (e == 17 and "File exists") or
-        (e == 2 and "Parent directory not found") or
-        (e == 13 and "Permission denied") or
-        tostring(e)
-    ) .. "\n")
-    coroutine.yield("syscall", "exit", 1)
+local success, err = sys.mkdir(args[1])
+if not success then
+  io.stderr:write(args[0]..": "..errx(err).."\n")
+  sys.exit(1)
 end
+
+sys.exit(0)

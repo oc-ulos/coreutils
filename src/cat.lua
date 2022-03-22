@@ -6,7 +6,7 @@ local stdio = require("stdio")
 
 if #args == 0 then
   io.stderr:write("Usage: " .. args[0] .. " <path>\n")
-  sys.exit(0)
+  sys.exit(1)
 end
 
 for i=1, #args do
