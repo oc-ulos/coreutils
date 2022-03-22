@@ -1,17 +1,18 @@
 --!lua
-local args = ({...})[1]
+local args = ...
 
-if not args[2] then
-    coroutine.yield("syscall", "write", 1, "Usage: " .. args[1] .. " <path>\n")
-    coroutine.yield("syscall", "exit", 0)
+local sys = require("syscalls")
+local errx = require("errors").err
+
+if not args[1] then
+  io.stderr:write("Usage: "..args[0].." <path>\n")
+  sys.exit(1)
 end
 
-local s, e = coroutine.yield("syscall", "unlink", args[2])
-if not s then
-    coroutine.yield("syscall", "write", 1, "Error: " .. (
-        (e == 2 and "no such file or directory") or
-        (e == 13 and "permission denied") or
-        tostring(e)
-    ) .. "\n")
-    coroutine.yield("syscall", "exit", 1)
+local success, err = sys.unlink(args[1])
+if not success then
+  io.stderr:write(args[0]..": Cannot remove '"..args[1].."': "..errx(err).."\n")
+  sys.exit(1)
 end
+
+sys.exit(0)
