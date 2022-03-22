@@ -1,23 +1,20 @@
 --!lua
-local args = ({...})[1]
-local device = args[2]
-local mountpoint = args[3] or "."
+local args = ...
+local device = args[1]
+local mountpoint = args[2]
 
-if not device then
-    coroutine.yield("syscall", "write", 1, "Usage: mount <device> [mountpoint]\n")
-    coroutine.yield("syscall", "exit", 0)
+local sys = require("syscalls")
+local errx = require("errors").err
+
+if not mountpoint then
+  io.stderr:write("Usage: "..args[0].." <device> [mountpoint]\n")
+  sys.exit(1)
 end
 
-local s, e = coroutine.yield("syscall", "mount", device, mountpoint)
-if not s then
-    coroutine.yield("syscall", "write", 1, args[1] .. ": " .. (
-        (e == 13 and "Permission denied") or
-        (e == 2 and "Mount point not found") or
-        (e == 20 and "Mount point is not a directory") or
-        (e == 16 and "Mount point is already in use") or
-        (e == 49 and "Device not found") or
-        (e == 19 and "Device is not supported") or
-        tostring(e)
-    ) .. "\n")
-    coroutine.yield("syscall", "exit", 1)
+local success, err = sys.mount(device, mountpoint)
+if not success then
+  io.stderr:write(args[0]..": "..device..": "..errx(err))
+  sys.exit(1)
 end
+
+sys.exit(0)
