@@ -1,32 +1,25 @@
 --!lua
-local args = ({...})[1]
+local args = ...
 
---- Perform a system call
----@param call string
----@vararg any
-local function syscall(call, ...)
-    return coroutine.yield("syscall", call, ...)
+local sys = require("syscalls")
+local stdio = require("stdio")
+
+if #args == 0 then
+  io.stderr:write("Usage: " .. args[0] .. " <path>\n")
+  sys.exit(0)
 end
 
-if not args[2] then
-    syscall("write", 1, "Usage: " .. args[1] .. " <path>\n")
-    syscall("exit", 0)
+for i=1, #args do
+  local path = args[i]
+  local fd, err = io.open(path, "r")
+  if fd then
+    local data = fd:read("a")
+    io.write(data)
+    fd:close()
+  else
+    io.stderr:write(string.format(stdio.stderr, "%s: %s: %s\n",
+      args[0], path, err))
+  end
 end
 
-for i=2, #args do
-    local path = args[i]
-    local fd, errno = syscall("open", path, "r")
-    if fd then
-        local data = syscall("read", fd, "a")
-        syscall("write", 1, data)
-        syscall("close", fd)
-    else
-        syscall("write", 1, args[1] .. ": " .. path .. ": " .. (
-            (errno == 2 and "No such file or directory") or
-            (errno == 13 and "Permission denied") or
-            "Unknown error"
-        ) .. "\n")
-    end
-end
-
-syscall("exit", 0)
+sys.exit(0)
