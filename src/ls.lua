@@ -1,8 +1,14 @@
 --!lua
-local dirfd = coroutine.yield("syscall", "opendir", ({...})[1][2] or ".")
+local dirent = require("posix.dirent")
 
-for dirent in function() return coroutine.yield("syscall", "readdir", dirfd) end do
-  coroutine.yield("syscall", "write", 1, dirent.name .. "\n")
+local args = ...
+
+args[1] = args[1] or "."
+
+for i=1, #args, 1 do
+  for file in dirent.files(args[i] or ".") do
+    io.write(file, "\t")
+  end
 end
 
-coroutine.yield("syscall", "close", dirfd)
+io.write("\n")

@@ -138,6 +138,9 @@ local function parse(input)
   if input == "exit\n" then syscall("exit", 0) end
   local tokens = tokenize(input)
   local env = {}
+  for k,v in pairs(syscall("environ")) do
+    env[k] = v
+  end
   local command = {}
 
   do
@@ -162,9 +165,9 @@ local function parse(input)
           table.insert(command, token)
         else
           local key, value = token:match("^([%w_]+)=(.*)$")
-          
+
           if key then
-            table.insert(env, key .. "=" .. value)
+            env[key] = value
           else
             table.insert(command, token)
             is_cmd = true

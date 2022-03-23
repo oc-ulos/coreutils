@@ -1,0 +1,24 @@
+--!lua
+-- Intentionally lacking an extension, for compatibility with
+-- scripts beginning with "#!/usr/bin/env ..."
+
+local sys = require("syscalls")
+
+local args, opts = require("getopt").getopt({
+  allow_finish = true,
+  exit_on_bad_opt = true,
+  options = {
+    i = false, ["ignore-environment"] = false,
+    u = true, unset = true,
+    C = true, chdir = true,
+    S = true, ["split-string"] = true,
+    help = false,
+  }
+}, table.unpack((...)))
+
+if #args == 0 then
+  for k, v in pairs(sys.environ()) do
+    io.write(k, "=", v, "\n")
+  end
+end
+

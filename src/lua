@@ -1,0 +1,3 @@
+--!lua
+-- Intentionally lacking a .lua extension, for compatibility
+-- with scripts starting with "#!/usr/bin/env lua"
