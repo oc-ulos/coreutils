@@ -216,7 +216,9 @@ local function parse(input)
   end
 
   if foundpath then
+    table.remove(command, 1)
     local pid = syscall("fork", function()
+      command[0] = foundpath
       local _, errno = syscall("execve", foundpath, command, env)
       if errno then
         printf("execve: %s\n", (
