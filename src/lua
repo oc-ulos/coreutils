@@ -1,3 +1,98 @@
 --!lua
 -- Intentionally lacking a .lua extension, for compatibility
 -- with scripts starting with "#!/usr/bin/env lua"
+
+local argv = ...
+
+local getopt = require("getopt").getopt
+
+local hlp = ([=[
+usage: %s [options] [script [args]]
+Available options are:
+  -e stat   execute string 'stat'
+  -i        enter interactive mode after executing 'script'
+  -l name   require library 'name' into global 'name'
+  -v        show version information
+  -E        ignore environment variables
+  --        stop handling options
+]=]):format(argv[0])
+
+local args, opts = getopt({
+  options = {
+    e = true, i = false,
+    l = true, v = false,
+    E = false
+  },
+  exit_on_bad_opt = true,
+  allow_finish = true,
+  finish_after_arg = true,
+  can_repeat_opts = true,
+  help_message = hlp
+}, (...))
+
+local env = require("copier").copy(_G)
+local function eval(code, name, file, cargs)
+  local ok, err
+  if file then
+    ok, err = loadfile(code, "t", env)
+  else
+    ok, err = load(code, name, "t", env)
+  end
+
+  if ok then
+    local result = table.pack(pcall(ok, table.unpack(cargs or {})))
+
+    if not result[1] and result[2] then
+      ok, err = result[1], result[2]
+    else
+      return table.unpack(result, 2, result.n)
+    end
+  end
+
+  if not ok then
+    io.stderr:write(argv[0], err, "\n")
+  end
+end
+
+if not next(opts) then
+  opts = { i = true, v = true }
+end
+
+-- XXX: this behavior isn't quiiiiiite correct
+if opts.l then
+  for i=1, #opts.l, 1 do
+    env[opts.l[i]] = require(opts.l[i])
+  end
+end
+
+if opts.e then
+  for i=1, #opts.e, 1 do
+    eval(opts.e[i], "=(command line)")
+  end
+end
+
+local versions = {
+  ["Lua 5.2"] = "Lua 5.2.4\tCopyright (C) 1994-2015 Lua.org, PUC-Rio",
+  ["Lua 5.3"] = "Lua 5.3.6\tCopyright (C) 1994-2020 Lua.org, PUC-Rio"
+}
+
+if opts.v then
+  print(versions[_VERSION] or _VERSION)
+end
+
+if #args > 0 then
+  eval(args[1], table.pack(table.unpack(args, 2)))
+end
+
+if opts.i then
+  while true do
+    io.write(tostring(env._PS1 or ">"))
+    local input = io.read("l")
+    while select(2, load(input)) == "unexpected symbol near <eof>" do
+      io.write(tostring(env._PS2 or ">>"))
+      input = input .. (#input > 0 and "\n" or "") .. io.read("l")
+    end
+
+    eval(input)
+  end
+end
