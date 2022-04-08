@@ -28,7 +28,7 @@ local args, opts = getopt({
   finish_after_arg = true,
   can_repeat_opts = true,
   help_message = hlp
-}, (...))
+}, argv)
 
 local env = require("copier").copy(_G)
 local function eval(code, name, file, cargs)
@@ -50,7 +50,7 @@ local function eval(code, name, file, cargs)
   end
 
   if not ok then
-    io.stderr:write(argv[0], err, "\n")
+    io.stderr:write(argv[0], ": ", err, "\n")
   end
 end
 
@@ -86,13 +86,13 @@ end
 
 if opts.i then
   while true do
-    io.write(tostring(env._PS1 or ">"))
+    io.write(type(env._PS1) == "string" and env._PS1 or "> ")
     local input = io.read("l")
-    while select(2, load(input)) == "unexpected symbol near <eof>" do
-      io.write(tostring(env._PS2 or ">>"))
+    while (select(2, load(input)) or ""):match("near <eof>") do
+      io.write(type(env._PS2) == "string" and env._PS2 or ">> ")
       input = input .. (#input > 0 and "\n" or "") .. io.read("l")
     end
 
-    eval(input)
+    print(eval(input))
   end
 end
