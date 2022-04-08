@@ -4,7 +4,7 @@ local device = args[1]
 local mountpoint = args[2]
 
 local sys = require("syscalls")
-local errx = require("errors").err
+local errx = require("posix.errno").errno
 
 if not mountpoint then
   io.stderr:write("Usage: "..args[0].." <device> [mountpoint]\n")

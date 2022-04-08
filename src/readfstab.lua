@@ -2,7 +2,7 @@
 -- Read /etc/fstab, and mount filesystems accordingly
 
 local sys = require("syscalls")
-local errx = require("errors").err
+local errx = require("posix.errno").errno
 local handle = io.open("/etc/fstab")
 if not handle then
   io.stderr:write("readfstab: Warning: no /etc/fstab\n")

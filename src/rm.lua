@@ -2,7 +2,7 @@
 local args = ...
 
 local sys = require("syscalls")
-local errx = require("errors").err
+local errx = require("posix.errno").errno
 
 if not args[1] then
   io.stderr:write("Usage: "..args[0].." <path>\n")

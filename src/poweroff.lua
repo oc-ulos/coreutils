@@ -2,7 +2,7 @@
 local args = ...
 
 local sys = require("syscalls")
-local errx = require("errors").err
+local errx = require("posix.errno").errno
 
 local arg = args[1] or args[0]
 local success, err
