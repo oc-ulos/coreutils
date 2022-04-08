@@ -4,16 +4,17 @@ local args = ...
 local sys = require("syscalls")
 local errx = require("posix.errno").errno
 
-local arg = args[1] or args[0]
+local arg = (args[1] and args[1]:sub(3)) or args[0]
 local success, err
-if arg == "--halt" then
+
+if arg == "halt" then
   success, err = sys.reboot("halt")
-elseif arg == "--poweroff" or arg == "-p" then
-  success, err = sys.reboot("halt")
-elseif arg == "--reboot" then
-  success, err = sys.reboot("halt")
+elseif arg == "poweroff" or arg == "-p" then
+  success, err = sys.reboot("poweroff")
+elseif arg == "reboot" then
+  success, err = sys.reboot("restart")
 else
-  success, err = nil, "Invalid executable name, or bad argument.\n"
+  success, err = nil, "Invalid executable name, or bad argument."
 end
 
 if not success then
