@@ -1,20 +1,28 @@
 --!lua
-local args = ...
+
+local argv = ...
+local args, opts = require("getopt").getopt({
+  options = {
+    help = false,
+  }
+}, argv)
 local device = args[1]
 local mountpoint = args[2]
 
 local sys = require("syscalls")
 local errx = require("posix.errno").errno
 
-if not mountpoint then
-  io.stderr:write("Usage: "..args[0].." <device> [mountpoint]\n")
-  sys.exit(1)
+if opts.help then
+  io.stderr:write(([[
+Usage:
+  mount
+  mount DEVICE MOUNTPOINT
+]]):format(argv[0]))
+  os.exit(0)
 end
 
 local success, err = sys.mount(device, mountpoint)
 if not success then
-  io.stderr:write(args[0]..": "..device..": "..errx(err))
-  sys.exit(1)
+  io.stderr:write(argv[0], ": ", device, ": ", errx(err), "\n")
+  os.exit(1)
 end
-
-sys.exit(0)

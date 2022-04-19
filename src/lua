@@ -15,6 +15,9 @@ Available options are:
   -v        show version information
   -E        ignore environment variables
   --        stop handling options
+
+This REPL source code is copyright (c) 2022 ULOS
+Developers under the GNU GPLv3.
 ]=]):format(argv[0])
 
 local args, opts = getopt({
@@ -46,7 +49,7 @@ local function eval(code, name, file, cargs)
     if not result[1] and result[2] then
       ok, err = result[1], result[2]
     else
-      return table.unpack(result, 2, result.n)
+      return result
     end
   end
 
@@ -94,6 +97,7 @@ if opts.i then
       input = input .. (#input > 0 and "\n" or "") .. io.read("l")
     end
 
-    print(eval(input))
+    local result = eval(input)
+    if result.n > 1 then print(table.unpack(result, 2, result.n)) end
   end
 end

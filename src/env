@@ -14,7 +14,7 @@ local args, opts = require("getopt").getopt({
     S = true, ["split-string"] = true,
     help = false,
   }
-}, table.unpack((...)))
+}, (...))
 
 if #args == 0 then
   for k, v in pairs(sys.environ()) do
