@@ -10,7 +10,7 @@ local device = args[1]
 local mountpoint = args[2]
 
 local sys = require("syscalls")
-local errx = require("posix.errno").errno
+local errno = require("posix.errno")
 
 if opts.help then
   io.stderr:write(([[
@@ -23,6 +23,6 @@ end
 
 local success, err = sys.mount(device, mountpoint)
 if not success then
-  io.stderr:write(argv[0], ": ", device, ": ", errx(err), "\n")
+  io.stderr:write(argv[0], ": ", device, ": ", errno.errno(err), "\n")
   os.exit(1)
 end
