@@ -16,8 +16,7 @@ Available options are:
   -E        ignore environment variables
   --        stop handling options
 
-This REPL source code is copyright (c) 2022 ULOS
-Developers under the GNU GPLv3.
+This REPL source code is copyright (c) 2022 ULOS Developers under the GNU GPLv3.
 ]=]):format(argv[0])
 
 local args, opts = getopt({
@@ -98,6 +97,6 @@ if opts.i then
     end
 
     local result = eval(input)
-    if result.n > 1 then print(table.unpack(result, 2, result.n)) end
+    if result and result.n > 1 then print(table.unpack(result, 2, result.n)) end
   end
 end

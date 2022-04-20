@@ -16,14 +16,12 @@ if opts.help then
   local t = "\t"
   io.stderr:write([[
 Usage: ]]..argv[0]..[[ [OPTION]... [FILE]...
-Concatenate one or more FILEs (or standard input)
-to standard output.  With no FILE, or when FILE
-is -, read standard input.
+Concatenate one or more FILEs (or standard input) to standard output.  With no
+FILE, or when FILE is -, read standard input.
 
   -h, --help]]..t..[[Print this help message.
 
-Copyright (c) 2022 ULOS Developers under the GNU
-GPLv3.
+Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
 ]])
   sys.exit(1)
 end
