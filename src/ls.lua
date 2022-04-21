@@ -119,8 +119,10 @@ local function list(base, file)
       permissions.bmptostr(sx.st_mode),
       opts.i and string.format("%d\t", sx.st_ino) or "",
       sx.st_uid, sx.st_gid,
-      opts.h and (opts.si and sizes.format10 or sizes.format)(sx.st_size)
-        or sx.st_size,
+      math.floor(
+        opts.h and (opts.si and sizes.format10 or sizes.format)(sx.st_size)
+        or sx.st_size
+      ),
       os.date("%Y-%m-%d %H:%M:%S", sx.st_mtime // 1000))
   end
   line = line .. string.format("\27[%dm", color) .. file
