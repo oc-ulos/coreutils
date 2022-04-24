@@ -5,6 +5,7 @@
 local argv = ...
 
 local getopt = require("getopt").getopt
+local readline = require("readline")
 
 local hlp = ([=[
 usage: %s [options] [script [args]]
@@ -88,9 +89,10 @@ if #args > 0 then
 end
 
 if opts.i then
+  local hist = {}
   while true do
     io.write(type(env._PS1) == "string" and env._PS1 or "> ")
-    local input = io.read("l")
+    local input = readline { history = hist } --io.read("l")
     while (select(2, load("return " .. input)) or ""):match("near <eof>") do
       io.write(type(env._PS2) == "string" and env._PS2 or ">> ")
       input = input .. (#input > 0 and "\n" or "") .. io.read("l")
