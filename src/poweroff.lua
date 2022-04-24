@@ -32,6 +32,6 @@ else
 end
 
 if not success then
-  io.stderr:write(args[0], ": ", errno.errno(err), "\n")
+  io.stderr:write(argv[0], ": ", errno.errno(err), "\n")
   os.exit(1)
 end
