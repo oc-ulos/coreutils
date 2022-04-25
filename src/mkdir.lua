@@ -21,7 +21,7 @@ if opts.help then
 usage: ]]..argv[0]..[[ [OPTION]... DIRECTORY...
 Create DIRECTORY(ies) if they do not exist.
 
-  -m, --mode=MODE   Set file mode. MODE must be a number.
+  -m, --mode MODE   Set file mode. MODE must be a number.
   -p, --parents     Silently create parent directories if necessary, and do
                     not exit on EEXIST
       --help        Print this help message

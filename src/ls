@@ -1,4 +1,4 @@
---!lua
+--#!/usr/bin/env lua
 
 local argv = table.pack(...)
 if type(argv[1]) == "table" then argv = argv[1] end
@@ -42,8 +42,8 @@ opts.r = opts.r or opts.reverse
 opts.one = opts["1"]
 
 if opts.help then
-  io.stderr:write([[
-usage: ls [OPTION]... [FILE]...
+  io.stderr:write(([[
+usage: %s [OPTION]... [FILE]...
 List information about FILEs.  If no FILEs are specified, defaults to the
 current directory.  Sorts entries alphabetically if none of -frU is specified.
 
@@ -67,7 +67,7 @@ If a long option requires an argument, then so does its short form.
       --help            Print this help message
 
 Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
-]])
+]]):format(argv[0]))
   os.exit(0)
 end
 

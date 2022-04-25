@@ -58,7 +58,7 @@ local function eval(code, name, file, cargs)
   end
 end
 
-if not next(opts) then
+if #args == 0 and not next(opts) then
   opts = { i = true, v = true }
 end
 
@@ -85,7 +85,7 @@ if opts.v then
 end
 
 if #args > 0 then
-  eval(args[1], table.pack(table.unpack(args, 2)))
+  eval(args[1], nil, true, table.pack(table.unpack(args, 2)))
 end
 
 if opts.i then
