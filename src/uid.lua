@@ -1,7 +1,2 @@
 --!lua
-
-local sys = require("syscalls")
-
-io.write(sys.getuid().."\n")
-
-sys.exit(0)
+io.write(math.floor(require("posix.unistd").getuid()).."\n")
