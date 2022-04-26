@@ -1,4 +1,4 @@
---#!/usr/bin/env lua
+--!lua
 
 local argv = table.pack(...)
 if type(argv[1]) == "table" then argv = argv[1] end
@@ -6,16 +6,19 @@ argv[0] = argv[0] or "ls"
 
 local permissions = require("permissions")
 local dirent = require("posix.dirent")
+local unistd = require("posix.unistd")
 local sizes = require("sizes")
 local errno = require("posix.errno")
 local stat = require("posix.sys.stat")
+local width = require("termio").getTermSize()
 
 local args, opts = require("getopt").getopt({
   options = {
     help = false,
     a = false, all = false,
     A = false, ["almost-all"] = false,
-    nocolor = false, d = false, directory = false,
+    nocolor = false, color = false,
+    d = false, directory = false,
     f = false, G = false, h = false,
     ["human-readable"] = false,
     si = false, hide = true,
@@ -40,6 +43,7 @@ opts.i = opts.i or opts.inode
 opts.n = opts.n or opts["numeric-uid-gid"]
 opts.r = opts.r or opts.reverse
 opts.one = opts["1"]
+if not opts.color then opts.nocolor = unistd.isatty(1) ~= 1 end
 
 if opts.help then
   io.stderr:write(([[
@@ -61,6 +65,7 @@ If a long option requires an argument, then so does its short form.
   -l                    Show various information about each file
   -n, --numeric-uid-gid Use numeric UID and GID
       --nocolor         Do not color output
+      --color           Always color output
   -r, --reverse         Reverse-sort entries before listing
   -U                    Same as -f
   -1                    One file per line
@@ -86,6 +91,7 @@ local colors = {
 -- executable permissions bitmap
 local exec = permissions.strtobmp("--x--x--x")
 
+local totalx = 0
 local function list(base, file)
   local sx, eno = stat.lstat(base..(file and ("/"..file) or ""))
   file = file or base
@@ -121,10 +127,24 @@ local function list(base, file)
       sx.st_uid, sx.st_gid,
       opts.h and (opts.si and sizes.format10 or sizes.format)(sx.st_size)
         or math.floor(sx.st_size),
-      os.date("%Y-%m-%d %H:%M:%S", sx.st_mtime // 1000))
+      os.date("%Y-%m-%d %H:%M:%S", math.floor(sx.st_mtime / 1000)))
   end
+
+  if totalx + #file >= width and not (opts.l or opts.one) then
+    line = line .. "\n"
+    totalx = 0
+  end
+
+  totalx = totalx + #file
+  totalx = 8 * math.floor((totalx + 9) / 8) - 1
+  if totalx >= width and line:sub(-1) ~= "\n" and not (opts.l or opts.one) then
+    line = line .. "\n"
+    totalx = 0
+  end
+
   line = line .. string.format("\27[%dm", color) .. file
-    .. ((opts.l or opts.one) and "\n\27[37m" or "\t\27[37m")
+    .. ((opts.l or opts.one) and "\n\27[37m" or totalx > 0 and "\t\27[37m"
+        or "\27[37m")
   return line
 end
 
