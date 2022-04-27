@@ -183,6 +183,7 @@ for i=1, #args, 1 do
     end
   end
 
-  if not opts.l then io.write("\27[37m\n") end
+  io.write("\27[39;49m")
+  if not opts.l then io.write("\n") end
 end
 

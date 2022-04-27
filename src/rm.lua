@@ -4,6 +4,7 @@ local argv = ...
 local stat = require("posix.sys.stat")
 local errno = require("posix.errno")
 local unistd = require("posix.unistd")
+local dirent = require("posix.dirent")
 local args, opts = require("getopt").getopt({
   options = {
     f = false, force = false,
@@ -43,12 +44,12 @@ if #args == 0 then
 end
 
 local function rm(file)
-  local success, err = unistd.unlink(file)
+  local success, _, err = unistd.unlink(file)
   local dir = false
 
   if err == errno.EISDIR and opts.r then
     dir = true
-    success, err = unistd.rmdir(file)
+    success, _, err = unistd.rmdir(file)
     if err == errno.EEXIST then
       for _file in dirent.files(file) do
         rm(file.."/".._file)

@@ -47,7 +47,7 @@ for i=1, #args, 1 do
     local path = ""
     for segment in dirname:gmatch("[^/\\]+") do
       path = path .. segment .. "/"
-      local success, err = stat.mkdir(arg)
+      local success, _, err = stat.mkdir(path, 0x1A4)
       if not success and err ~= errno.EEXIST then
         io.stderr:write(argv[0], ": failed creating parent: ",
           errno.errno(err), "\n")
@@ -56,7 +56,7 @@ for i=1, #args, 1 do
     end
   end
 
-  local success, err = stat.mkdir(arg, opts.m or 511)
+  local success, err = stat.mkdir(arg, opts.m or 0x1FF)
   if opts.p and err == errno.EXIST then success = true end
   if not success then
     io.stderr:write(argv[0]..": "..errno.errno(err).."\n")
