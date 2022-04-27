@@ -16,9 +16,7 @@ end
 
 --- Read a line from stdin(0).
 ---@return string
-local function readline()
-  return syscall("read", 0, "l")
-end
+local readline = require("readline")
 
 --- Tokenize a string.
 ---
@@ -245,8 +243,9 @@ if args[2] == "-c" then
   syscall("exit", 0)
 end
 
+local opts = { history = {} }
 while true do
   printf("\27[94m%s\27[0m> ", syscall("getcwd"))
-  local line = readline()
+  local line = readline(opts)
   parse(line .. "\n")
 end

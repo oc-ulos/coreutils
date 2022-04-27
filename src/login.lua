@@ -1,4 +1,4 @@
--- login
+--!lua
 -- this program more or less follows a simplified version of the path that
 -- BusyBox's login does
 
