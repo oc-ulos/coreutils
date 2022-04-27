@@ -186,6 +186,8 @@ local function parse(input)
   local paths = {
     "/bin/?",
     "/bin/?.lua",
+    "/usr/bin/?",
+    "/usr/bin/?.lua",
     "./?",
     "./?.lua",
   }
