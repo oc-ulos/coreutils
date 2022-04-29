@@ -1,9 +1,7 @@
---!lua
+--#!/usr/bin/env lua
 -- uname
 
-local argv = ...
-
-local sys = require("syscalls")
+local argv = {...}
 
 local fields = {}
 
@@ -12,7 +10,7 @@ for k,v in pairs {"sysname", "nodename", "release", "version", "machine"} do
   fields[v] = false
 end
 
-local uname = sys.uname()
+local uname = require("posix.sys.utsname").uname()
 
 if #argv == 0 then argv[1] = "-s" end
 
@@ -33,6 +31,10 @@ for i=1, #argv, 1 do
     fields.version = true
   elseif a == "-m" or a == "--machine" then
     fields.machine = true
+  elseif a == "--help" then
+    io.stderr:write()
+  else
+    io.stderr:write("")
   end
 end
 

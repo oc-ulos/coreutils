@@ -10,7 +10,8 @@ local unistd = require("posix.unistd")
 local sizes = require("sizes")
 local errno = require("posix.errno")
 local stat = require("posix.sys.stat")
-local width = require("termio").getTermSize()
+local pwd = require("posix.pwd")
+local grp = require("posix.grp")
 
 local args, opts = require("getopt").getopt({
   options = {
@@ -76,6 +77,8 @@ Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
   os.exit(0)
 end
 
+local width = require("termio").getTermSize()
+
 args[1] = args[1] or "."
 
 local colors = {
@@ -114,17 +117,22 @@ local function list(base, file)
         or stat.S_ISBLK(sx.st_mode) ~= 0 and "b"
         or stat.S_ISLNK(sx.st_mode) ~= 0 and "l"
         or stat.S_ISFIFO(sx.st_mode) ~= 0 and "f"
-        or "-")
+        or "?")
       color = colors[ftc]
     end
   end
 
   local line = ""
   if opts.l then
-    line = line .. string.format("%s%s\t%s%d\t%d\t%5s\t%s\t", ftc,
-      permissions.bmptostr(sx.st_mode),
+    local uinfo = pwd.getpwuid(sx.st_uid)
+    local ginfo = grp.getgrgid(sx.st_gid)
+    local uname, ugroup
+    if uinfo then uname = uinfo.pw_name end
+    if ginfo then ugroup = ginfo.gr_name end
+    line = line .. string.format("%s%s%s %d %s %s\t%5s\t%s ",
       opts.i and string.format("%d\t", sx.st_ino) or "",
-      sx.st_uid, sx.st_gid,
+      ftc, permissions.bmptostr(sx.st_mode), sx.st_nlink,
+      uname or sx.st_uid, ugroup or sx.st_gid,
       opts.h and (opts.si and sizes.format10 or sizes.format)(sx.st_size)
         or math.floor(sx.st_size),
       os.date("%Y-%m-%d %H:%M:%S", math.floor(sx.st_mtime / 1000)))
