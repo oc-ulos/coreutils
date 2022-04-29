@@ -1,4 +1,4 @@
---#!/usr/bin/env lua
+#!/usr/bin/env lua
 -- uname
 
 local argv = {...}
@@ -32,9 +32,27 @@ for i=1, #argv, 1 do
   elseif a == "-m" or a == "--machine" then
     fields.machine = true
   elseif a == "--help" then
-    io.stderr:write()
+    io.stderr:write([[
+usage: uname [OPTION]...
+Print certain system information.  With no OPTION, behave like -s.
+
+Fields are printed in the order they are listed here, skipping those that are
+not enabled.
+
+  -a, --all             enable all fields
+  -s, --kernel-name     the name of the kernel
+  -n, --nodename        the hostname
+  -r, --kernel-release  the kernel release
+  -v, --kernel-version  the kernel version
+  -m, --machine         the machine type
+      --help            show this help message and exit
+
+Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
+]])
+    os.exit(0)
   else
-    io.stderr:write("")
+    io.stderr:write("uname: invalid option\nsee 'uname --help' for more information.\n")
+    os.exit(1)
   end
 end
 
