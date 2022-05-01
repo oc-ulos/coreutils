@@ -6,11 +6,10 @@ local sys = require("syscalls")
 local pwd = require("posix.pwd")
 local unistd = require("posix.unistd")
 local stdlib = require("posix.stdlib")
+local sha = require("sha3")
 
 local uname = sys.uname()
 io.stdout:write("\n", uname.sysname, " ", uname.release, "\n")
-
-local sha = require("sha")
 
 while true do
   if not unistd.isatty(0) or not unistd.isatty(1) then
@@ -35,7 +34,7 @@ while true do
   if not pwent then
     io.stderr:write(err, "\n")
     unistd.sleep(3)
-  elseif sha.sha3_256(password) == pwent.pw_passwd then
+  elseif sha.sha256(password):gsub(".",function(x)return("%02x"):format(x:byte())end) == pwent.pw_passwd then
     io.write("\n")
     sys.setuid(pwent.pw_uid)
     sys.setgid(pwent.pw_gid)

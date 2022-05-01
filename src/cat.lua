@@ -1,7 +1,6 @@
 --!lua
 
-local sys = require("syscalls")
-local argv = ...
+local argv = require("argcompat").command("cat", ...)
 
 local args, opts = require("getopt").getopt({
   options = {
@@ -23,10 +22,12 @@ FILE, or when FILE is -, read standard input.
 
 Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
 ]])
-  sys.exit(1)
+  os.exit(1)
 end
 
-for i=1, #args do
+if #args == 0 then args[1] = "-" end
+
+for i=1, #args, 1 do
   local path = args[i]
   local fd, err
   if args[i] == "-" then
@@ -37,7 +38,7 @@ for i=1, #args do
   if fd then
     -- read data in chunks for memory usage reasons
     repeat
-      local data = fd:read(4096)
+      local data = fd:read("L")
       if data then io.write(data) end
     until not data
     fd:close()
@@ -46,5 +47,3 @@ for i=1, #args do
       argv[0], path, err))
   end
 end
-
-sys.exit(0)
