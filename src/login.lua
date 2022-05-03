@@ -39,7 +39,7 @@ while true do
     sys.setuid(pwent.pw_uid)
     sys.setgid(pwent.pw_gid)
     stdlib.setenv("USER", pwent.pw_name)
-    stdlib.setenv("HOME", pwent.pw_home or "/")
+    stdlib.setenv("HOME", pwent.pw_dir or "/")
     stdlib.setenv("UID", tostring(pwent.pw_uid))
     stdlib.setenv("GID", tostring(pwent.pw_gid))
     stdlib.setenv("SHELL", pwent.pw_shell or "/bin/sh.lua")
