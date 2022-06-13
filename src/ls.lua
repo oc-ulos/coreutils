@@ -95,7 +95,7 @@ local colors = {
 local exec = permissions.strtobmp("--x--x--x")
 
 local totalx = 0
-local function list(base, file)
+local function list(base, file, pad)
   local sx, eno = stat.lstat(base..(file and ("/"..file) or ""))
   file = file or base
   if not sx then
@@ -107,8 +107,7 @@ local function list(base, file)
   local ftc = "-"
 
   if not opts.nocolor then
-    if stat.S_ISREG(sx.st_mode) ~= 0 and
-        bit32.band(sx.st_mode, exec) ~= 0 then
+    if stat.S_ISREG(sx.st_mode) ~= 0 and (sx.st_mode & exec) ~= 0 then
       color = colors.e
     else
       ftc = (stat.S_ISDIR(sx.st_mode) ~= 0 and "d"
@@ -144,15 +143,23 @@ local function list(base, file)
   end
 
   totalx = totalx + #file
-  totalx = 8 * math.floor((totalx + 9) / 8) - 1
   if totalx >= width and line:sub(-1) ~= "\n" and not (opts.l or opts.one) then
     line = line .. "\n"
     totalx = 0
   end
 
-  line = line .. string.format("\27[%dm", color) .. file
-    .. ((opts.l or opts.one) and "\n\27[37m" or totalx > 0 and "\t\27[37m"
-        or "\27[37m")
+  line = line .. string.format("\27[%dm%s\27[37m", color, file)
+  if opts.l or opts.one then
+    line = line .. "\n"
+  else
+    totalx = totalx + pad - #file
+    if totalx >= width then
+      line = line .. "\n"
+      totalx = 0
+    else
+      line = line .. (" "):rep(pad - #file)
+    end
+  end
   return line
 end
 
@@ -178,6 +185,11 @@ for i=1, #args, 1 do
       end
     end
 
+    local maxwidth = 0
+    for j=1, #files, 1 do
+      maxwidth = math.max(maxwidth, #files[j]+2)
+    end
+
     if not opts.f then
       if opts.r then
         table.sort(files, function(a, b) return b < a end)
@@ -187,7 +199,7 @@ for i=1, #args, 1 do
     end
 
     for _, file in ipairs(files) do
-      io.write(list(args[i], file))
+      io.write(list(args[i], file, maxwidth))
     end
   end
 
