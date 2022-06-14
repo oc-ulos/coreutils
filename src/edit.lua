@@ -56,13 +56,27 @@ local function sscroll(up)
   end
 end
 
-local processKey
+local processKey, unsaved
 processKey = function(key, flags)
   flags = flags or {}
   if flags.ctrl then
     if key == "w" then
-      io.write("\27[2J\27[1;1H")
-      os.exit()
+      if unsaved then
+        status("really? [y/N] ")
+        io.write("\27[30;47m")
+        local really = io.read()
+        io.write("\29[m")
+
+        if really:lower() == 'y' then
+          io.write("\27[m\27[2J\27[1;1H")
+          os.exit()
+        else
+          redraw()
+        end
+      else
+        io.write("\27[m\27[2J\27[1;1H")
+        os.exit()
+      end
     elseif key == "s" then
       local handle, err = io.open(file, "w")
       if not handle then
@@ -71,6 +85,7 @@ processKey = function(key, flags)
         sleep(1)
         return
       end
+      unsaved = false
       handle:write(table.concat(buffer, "\n") .. "\n")
       handle:close()
     elseif key == "f" then
@@ -92,6 +107,7 @@ processKey = function(key, flags)
       sleep(1)
     elseif key == "m" then
       table.insert(buffer, cl + 1, "")
+      unsaved = true
       processKey("down")
       cache = {}
     end
@@ -100,15 +116,18 @@ processKey = function(key, flags)
       if #buffer[cl] == 0 then
         processKey("up")
         table.remove(buffer, cl + 1)
+        unsaved = true
         cp = 0
         cache = {}
       elseif cp == 0 and #buffer[cl] > 0 then
         buffer[cl] = buffer[cl]:sub(1, -2)
         cache[cl] = false
+        unsaved = true
       elseif cp < #buffer[cl] then
         local tx = buffer[cl]
         buffer[cl] = tx:sub(0, #tx - cp - 1) .. tx:sub(#tx - cp + 1)
         cache[cl] = false
+        unsaved = true
       end
     elseif key == "up" then
       local clch = false
@@ -153,6 +172,7 @@ processKey = function(key, flags)
         buffer[cl] = buffer[cl]:sub(0, -cp - 1) .. key .. buffer[cl]:sub(-cp)
       end
       cache[cl] = false
+      unsaved = true
     end
   end
 end
