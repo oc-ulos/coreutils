@@ -39,7 +39,7 @@ while true do
     stdlib.setenv("UID", tostring(pwent.pw_uid))
     stdlib.setenv("GID", tostring(pwent.pw_gid))
     stdlib.setenv("SHELL", pwent.pw_shell or "/bin/sh.lua")
-    unistd.execp(pwent.pw_shell or "/bin/sh.lua", {})
+    unistd.execp(pwent.pw_shell or "/bin/sh.lua", {"--login"})
   else
     io.stderr:write("bad login\n")
     unistd.sleep(3)
