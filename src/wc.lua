@@ -33,7 +33,7 @@ if not (opts.l or opts.w or opts.c) then
 end
 
 local function wc(file)
-  local handle, err = io.open(f, "r")
+  local handle, err = io.open(file, "r")
   if not handle then
     return nil, err
   end
