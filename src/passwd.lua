@@ -40,7 +40,7 @@ local login
 if args[1] then
   login = pwd.getpwnam(args[1])
 else
-  login = pwd.getpwuid(unistd.getuid())
+  login = pwd.getpwuid(unistd.getlogin() or unistd.getuid())
 end
 
 if not login then
@@ -72,7 +72,7 @@ elseif opts.u then
   end
 
 else
-  if #login.pw_passwd > 0 and unistd.getuid() > 0 then
+  if #login.pw_passwd > 0 and unistd.getlogin() > 0 then
     local old = getpasswd("old password for "..login.pw_name..": ")
     if unistd.crypt(old) ~= login.pw_passwd then
       unistd.sleep(3)
