@@ -15,6 +15,7 @@ options:
   -h, --help                show this help message
   -b, --base-dir BASE_DIR   base for the new account's home directory
   -c, --comment COMMENT     GECOS field of the new account
+  -D, --defaults            print defaults
   -d, --home-dir HOME_DIR   the new account's home directory
   -g, --gid GROUP           group ID for the new account
   -u, --uid UID             user ID for the new account
@@ -30,6 +31,7 @@ local args, opts = require("getopt").getopt({
     h = false, help = false,
     b = true, ["base-dir"] = true,
     c = true, comment = true,
+    D = false, defaults = false,
     d = true, ["home-dir"] = true,
     g = true, gid = true,
     u = true, uid = true,
@@ -39,7 +41,7 @@ local args, opts = require("getopt").getopt({
   },
   finish_after_arg = true,
   exit_on_bad_opt = true,
-  help_message = "see '"..argv[0].." --help' for details"
+  help_message = "see '"..argv[0].." --help' for details\n"
 }, argv)
 
 opts.h = opts.h or opts.help
@@ -57,7 +59,7 @@ local defaults = {
   base = "/",
   home = "/home",
   inactive = -1,
-  shell = "/bin/vbls.lua",
+  shell = "/bin/sh.lua",
   skel = "/etc/skel",
 }
 
@@ -72,9 +74,9 @@ local login = args[1]
 
 opts.b = opts.b or opts["base-dir"] or defaults.base
 opts.c = opts.c or opts.comment or defaults.comment
-opts.d = opts.d or opts["home-dir"] or defaults.home..login
-opts.u = opts.u or opts.uid
-opts.g = opts.g or opts.gid or defaults.group
+opts.d = opts.d or opts["home-dir"] or defaults.home.."/"..login
+opts.u = tonumber(opts.u or opts.uid)
+opts.g = tonumber(opts.g or opts.gid) or defaults.group
 opts.s = opts.s or opts.shell or defaults.shell
 opts.m = opts.m or opts["create-home"]
 opts.N = opts.N or opts["no-user-group"]
@@ -91,7 +93,7 @@ end
 
 local new = {
   pw_name = login,
-  pw_passwd = "!",
+  pw_passwd = "",
   pw_uid = opts.u,
   pw_gid = opts.g,
   pw_gecos = opts.c,
@@ -102,9 +104,8 @@ local new = {
 pwd.update_passwd(new)
 
 if opts.m then
-  local ok, err = stat.mkdir(new.pw_dir)
+  local ok = os.execute("mkdir -p " .. new.pw_dir)
   if not ok then
-    io.stderr:write(argv[0], ": warning: ", err, "\n")
     os.exit(1)
   end
 end
