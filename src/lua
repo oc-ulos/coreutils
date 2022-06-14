@@ -39,8 +39,8 @@ local function eval(code, name, file, cargs)
   if file then
     ok, err = loadfile(code, "t", env)
   else
-    ok, err = load("return " .. code, name, "t", env)
-    if not ok then ok, err = load(code, name, "t", env) end
+    ok, err = load("return " .. code, "="..name, "t", env)
+    if not ok then ok, err = load(code, "="..name, "t", env) end
   end
 
   if ok then
@@ -85,7 +85,7 @@ if opts.v then
 end
 
 if #args > 0 then
-  eval(args[1], nil, true, table.pack(table.unpack(args, 2)))
+  eval(args[1], args[1], true, table.pack(table.unpack(args, 2)))
 end
 
 if opts.i then
@@ -100,7 +100,7 @@ if opts.i then
       end
     end
 
-    local result = eval(input)
+    local result = eval(input, "=stdin")
     if result and result.n > 1 then print(table.unpack(result, 2, result.n)) end
   end
 end
