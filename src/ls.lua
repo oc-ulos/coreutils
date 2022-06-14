@@ -96,6 +96,8 @@ local exec = permissions.strtobmp("--x--x--x")
 
 local totalx = 0
 local function list(base, file, pad)
+  pad = pad or 0
+
   local sx, eno = stat.lstat(base..(file and ("/"..file) or ""))
   file = file or base
   if not sx then

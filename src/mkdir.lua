@@ -1,8 +1,8 @@
 --!lua
 local argv = ...
 
-local errno = require("posix.errno")
 local stat = require("posix.sys.stat")
+local errno = require("posix.errno")
 local libgen = require("posix.libgen")
 
 local args, opts = require("getopt").getopt({
@@ -45,6 +45,7 @@ for i=1, #args, 1 do
   local dirname = libgen.dirname(arg)
   if opts.p or opts.parents then
     local path = ""
+    if arg:sub(1,1) == "/" then path = "/" end
     for segment in dirname:gmatch("[^/\\]+") do
       path = path .. segment .. "/"
       local success, _, err = stat.mkdir(path, 0x1A4)
