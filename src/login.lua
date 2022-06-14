@@ -8,7 +8,7 @@ local unistd = require("posix.unistd")
 local stdlib = require("posix.stdlib")
 
 local uname = sys.uname()
-io.stdout:write("\n", uname.sysname, " ", uname.release, "\n")
+io.stdout:write("\27[m\27[2J\27[H\n", uname.sysname, " ", uname.release, "\n")
 
 while true do
   if not unistd.isatty(0) or not unistd.isatty(1) then
@@ -34,6 +34,7 @@ while true do
     io.write("\n")
     sys.setuid(pwent.pw_uid)
     sys.setgid(pwent.pw_gid)
+    sys.ioctl(0, "setlogin", pwent.pw_uid)
     stdlib.setenv("USER", pwent.pw_name)
     stdlib.setenv("HOME", pwent.pw_dir or "/")
     stdlib.setenv("UID", tostring(pwent.pw_uid))
