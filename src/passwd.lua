@@ -52,6 +52,15 @@ if not login then
   os.exit(1)
 end
 
+local function getpasswd(prompt)
+  io.stdout:write(prompt)
+  ioctl(0, "stty", {echo = false})
+  local password = io.stdin:read("l")
+  ioctl(0, "stty", {echo = true})
+  io.stdout:write("\n")
+  return password
+end
+
 if opts.l then
   if login.pw_passwd:sub(1,1) ~= "!" then
     login.pw_passwd = "!" .. login.pw_passwd
@@ -63,11 +72,21 @@ elseif opts.u then
   end
 
 else
-  io.stdout:write("password: ")
-  ioctl(0, "stty", {echo = false})
-  local password = io.stdin:read("l")
-  ioctl(0, "stty", {echo = true})
+  if #login.pw_passwd > 0 and unistd.getuid() > 0 then
+    local old = getpasswd("old password for "..login.pw_name..": ")
+    if unistd.crypt(old) ~= login.pw_passwd then
+      unistd.sleep(3)
+      io.stderr:write("bad login\n")
+      os.exit(1)
+    end
+  end
 
+  local password = getpasswd("new password for "..login.pw_name..": ")
+  local password2 = getpasswd("confirm new password: ")
+  if password ~= password2 then
+    io.stderr:write("passwords are mismatched\n")
+    os.exit(1)
+  end
   login.pw_passwd = unistd.crypt(password)
 end
 
