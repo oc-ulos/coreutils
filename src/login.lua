@@ -35,6 +35,7 @@ while true do
     sys.setuid(pwent.pw_uid)
     sys.setgid(pwent.pw_gid)
     sys.ioctl(0, "setlogin", pwent.pw_uid)
+    sys.setsid()
     stdlib.setenv("USER", pwent.pw_name)
     stdlib.setenv("HOME", pwent.pw_dir or "/")
     stdlib.setenv("UID", tostring(pwent.pw_uid))

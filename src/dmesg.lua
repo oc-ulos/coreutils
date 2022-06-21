@@ -4,12 +4,14 @@ local sys = require("syscalls")
 local errno = require("posix.errno")
 
 local options, usage, condense = require("getopt").build {
-  { "Clear the kernel ring buffer\t\t",     false,  "C", "clear" },
-  { "Print, then clear, the ring buffer\t", false,  "c", "read-clear" },
-  { "Set the console log level",            "LEVEL","n", "console-level" },
-  { "Enable logging to the console\t",      false,  "E", "console-on" },
-  { "Disable logging to the console\t",     false,  "D", "console-off" },
-  { "Show this help message\t\t",           false,  "h", "help" },
+  { "\t\tClear the kernel ring buffer",       false,  "C", "clear" },
+  { "\tPrint, then clear, the ring buffer",   false,  "c", "read-clear" },
+  { "Set the console log level",              "LEVEL","n", "console-level" },
+  { "\tEnable logging to the console",        false,  "E", "console-on" },
+  { "\tDisable logging to the console",       false,  "D", "console-off" },
+  { "\tFollow until interrupted",             false,  "w", "follow"},
+  { "\tLike -w, but prints only new messages",false,  "W", "follow-new"},
+  { "\t\tShow this help message",             false,  "h", "help" },
 }
 
 local _, opts = require("getopt").getopt({
@@ -45,14 +47,16 @@ if nsel > 1 then showusage() end
 if nsel == 0 then opts.c = true end
 
 local function do_syslog(...)
-  local res, err = sys.syslog(...)
+  local res, err = sys.klogctl(...)
   if not res then
     io.stderr:write(string.format("dmesg: %s\n", errno.errno(err)))
     os.exit(1)
   end
 
-  for i=1, #res, 1 do
-    print(res[i])
+  if type(res) == "table" then
+    for i=1, #res, 1 do
+      print(res[i])
+    end
   end
 end
 
@@ -70,4 +74,13 @@ elseif opts.E then
 
 elseif opts.D then
   do_syslog("console_off")
+
+elseif opts.w or opts.W then
+  if opts.W then
+    do_syslog("clear")
+  end
+
+  while true do
+    do_syslog("read")
+  end
 end
