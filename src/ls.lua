@@ -206,6 +206,7 @@ for i=1, #args, 1 do
   end
 
   io.write("\27[39;49m")
-  if not opts.l then io.write("\n") end
+  if (i < #args or totalx > 0) and not opts.l then io.write("\n") end
+  totalx = 0
 end
 
