@@ -21,12 +21,16 @@ Options:
 Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
 ]])
   os.exit(1)
+
 elseif arg == "halt" then
   success, err = sys.reboot("halt")
+
 elseif arg == "poweroff" or argv[1] == "-p" then
   success, err = sys.reboot("poweroff")
+
 elseif arg == "reboot" then
   success, err = sys.reboot("restart")
+
 else
   success, err = nil, "Invalid executable name, or bad argument."
 end

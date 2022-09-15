@@ -39,6 +39,7 @@ local unistd = require("posix.unistd")
 local login
 if args[1] then
   login = pwd.getpwnam(args[1])
+
 else
   login = pwd.getpwuid(unistd.getlogin() or unistd.getuid())
 end
@@ -46,9 +47,11 @@ end
 if not login then
   if args[1] then
     io.stderr:write("user '", args[1], "' not found\n")
+
   else
     io.stderr:write("could not get current user\n")
   end
+
   os.exit(1)
 end
 
@@ -74,6 +77,7 @@ elseif opts.u then
 else
   if #login.pw_passwd > 0 and unistd.getlogin() > 0 then
     local old = getpasswd("old password for "..login.pw_name..": ")
+
     if unistd.crypt(old) ~= login.pw_passwd then
       unistd.sleep(3)
       io.stderr:write("bad login\n")
@@ -83,6 +87,7 @@ else
 
   local password = getpasswd("new password for "..login.pw_name..": ")
   local password2 = getpasswd("confirm new password: ")
+
   if password ~= password2 then
     io.stderr:write("passwords are mismatched\n")
     os.exit(1)

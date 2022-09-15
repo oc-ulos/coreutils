@@ -43,12 +43,15 @@ opts.m = tonumber(opts.m or opts.mode)
 for i=1, #args, 1 do
   local arg = args[i]
   local dirname = libgen.dirname(arg)
+
   if opts.p or opts.parents then
     local path = ""
     if arg:sub(1,1) == "/" then path = "/" end
+
     for segment in dirname:gmatch("[^/\\]+") do
       path = path .. segment .. "/"
       local success, _, err = stat.mkdir(path, 0x1A4)
+
       if not success and err ~= errno.EEXIST then
         io.stderr:write(argv[0], ": failed creating parent: ",
           errno.errno(err), "\n")
@@ -59,6 +62,7 @@ for i=1, #args, 1 do
 
   local success, err = stat.mkdir(arg, opts.m or 0x1FF)
   if opts.p and err == errno.EXIST then success = true end
+
   if not success then
     io.stderr:write(argv[0]..": "..errno.errno(err).."\n")
     os.exit(1)

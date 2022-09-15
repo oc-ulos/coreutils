@@ -16,21 +16,28 @@ if #argv == 0 then argv[1] = "-s" end
 
 for i=1, #argv, 1 do
   local a = argv[i]
+
   if a == "-a" or a == "--all" then
     for k in pairs(fields) do
       if type(k) ~= "number" then fields[k] = true end
     end
     break
+
   elseif a == "-s" or a == "--kernel-name" then
     fields.sysname = true
+
   elseif a == "-n" or a == "--nodename" then
     fields.nodename = true
+
   elseif a == "-r" or a == "--kernel-release" then
     fields.release = true
+
   elseif a == "-v" or a == "--kernel-version" then
     fields.version = true
+
   elseif a == "-m" or a == "--machine" then
     fields.machine = true
+
   elseif a == "--help" then
     io.stderr:write([[
 usage: uname [OPTION]...
@@ -50,6 +57,7 @@ not enabled.
 Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
 ]])
     os.exit(0)
+
   else
     io.stderr:write("uname: invalid option\nsee 'uname --help' for more information.\n")
     os.exit(1)

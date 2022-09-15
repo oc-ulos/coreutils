@@ -2,7 +2,7 @@
 
 local component = require("component")
 
-local args, opts = require("getopt").getopt({options={
+local _, opts = require("getopt").getopt({options={
   h = false, help = false,
   a = false, address = false,
   d = false, device = false,
@@ -36,11 +36,14 @@ devlen = 8 * math.floor((devlen + 9) / 8) - 1
 for i=1, #entries, 1 do
   local entry = entries[i]
   local address, device, ctype = entry.address, entry.device, entry.type
+
   if opts.a or opts.address then
     io.write(address, "\t")
   end
+
   if opts.d or opts.device then
     io.write(device .. (" "):rep(devlen - #device))
   end
+
   print(ctype)
 end

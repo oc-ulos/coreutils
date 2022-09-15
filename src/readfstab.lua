@@ -14,9 +14,11 @@ for line in handle:lines() do
     local dev, path = line:match("([^ ]+) +([^ ]+)")
     sys.mkdir(path)
     local ok, err = sys.mount(dev, path)
+
     if not ok then
       io.stderr:write(("readfstab: Failed mounting '%s' on '%s': %s\n")
         :format(dev, path, errx(err)))
+
     else
       io.stderr:write(("readfstab: Mounted '%s' on '%s'\n"):format(dev, path))
     end

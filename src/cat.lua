@@ -30,11 +30,14 @@ if #args == 0 then args[1] = "-" end
 for i=1, #args, 1 do
   local path = args[i]
   local fd, err
+
   if args[i] == "-" then
     fd = io.stdin
+
   else
     fd, err = io.open(path, "r")
   end
+
   if fd then
     -- read data in chunks for memory usage reasons
     repeat
@@ -42,6 +45,7 @@ for i=1, #args, 1 do
       if data then io.write(data) end
     until not data
     fd:close()
+
   else
     io.stderr:write(string.format("%s: %s: %s\n",
       argv[0], path, err))

@@ -6,6 +6,7 @@ local args, opts = require("getopt").getopt({
     help = false,
   }
 }, argv)
+
 local device = args[1]
 local mountpoint = args[2]
 
@@ -30,6 +31,7 @@ if #args == 0 then
 
 else
   local success, err = sys.mount(device, mountpoint)
+
   if not success then
     io.stderr:write(argv[0], ": ", device, ": ", errno.errno(err), "\n")
     os.exit(1)

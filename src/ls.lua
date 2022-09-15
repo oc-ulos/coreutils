@@ -111,6 +111,7 @@ local function list(base, file, pad)
   if not opts.nocolor then
     if stat.S_ISREG(sx.st_mode) ~= 0 and (sx.st_mode & exec) ~= 0 then
       color = colors.e
+
     else
       ftc = (stat.S_ISDIR(sx.st_mode) ~= 0 and "d"
         or stat.S_ISREG(sx.st_mode) ~= 0 and "-"
@@ -128,14 +129,27 @@ local function list(base, file, pad)
     local uinfo = pwd.getpwuid(sx.st_uid)
     local ginfo = grp.getgrgid(sx.st_gid)
     local uname, ugroup
+
     if uinfo then uname = uinfo.pw_name end
     if ginfo then ugroup = ginfo.gr_name end
+
     line = line .. string.format("%s%s%s %d %s %s\t%5s\t%s ",
+      -- inode
       opts.i and string.format("%d\t", sx.st_ino) or "",
-      ftc, permissions.bmptostr(sx.st_mode), sx.st_nlink,
-      uname or sx.st_uid, ugroup or sx.st_gid,
+      -- filetype char, e.g. "-" "d" "c" "b"
+      ftc,
+      -- permissions
+      permissions.bmptostr(sx.st_mode),
+      -- how many links?
+      sx.st_nlink,
+      -- owner
+      uname or sx.st_uid,
+      -- group
+      ugroup or sx.st_gid,
+      -- size
       opts.h and (opts.si and sizes.format10 or sizes.format)(sx.st_size)
         or math.floor(sx.st_size),
+      -- last modified
       os.date("%Y-%m-%d %H:%M:%S", math.floor(sx.st_mtime / 1000)))
   end
 
@@ -153,26 +167,32 @@ local function list(base, file, pad)
   line = line .. string.format("\27[%dm%s\27[37m", color, file)
   if opts.l or opts.one then
     line = line .. "\n"
+
   else
     totalx = totalx + pad - #file
     if totalx >= width then
       line = line .. "\n"
       totalx = 0
+
     else
       line = line .. (" "):rep(pad - #file)
     end
   end
+
   return line
 end
 
 for i=1, #args, 1 do
   if #args > 1 then print(argv[i]..":") end
   local statx, eno = stat.lstat(args[i])
+
   if not statx then
     io.stderr:write(argv[0], ": ", eno, "\n")
     os.exit(1)
+
   elseif stat.S_ISDIR(statx.st_mode) == 0 or opts.d then
     io.write(list(args[i]))
+
   else
     local files = {}
     if opts.a and not opts.A then
@@ -195,6 +215,7 @@ for i=1, #args, 1 do
     if not opts.f then
       if opts.r then
         table.sort(files, function(a, b) return b < a end)
+
       else
         table.sort(files)
       end

@@ -5,7 +5,7 @@ local getopt = require("getopt")
 local stdlib = require("posix.stdlib")
 local stat = require("posix.sys.stat")
 local unistd = require("posix.unistd")
---local tree = require("treeutil")
+local tree = require("treeutil")
 local pwd = require("posix.pwd")
 local grp = require("posix.grp")
 
@@ -76,12 +76,16 @@ end
 local function chown(file)
   local absolute, err = stdlib.realpath(file)
   if absolute then
+    local info = stat.stat(absolute)
     local oid, gid = ownerID, groupID
 
     if not (oid and gid) then
-      local info = stat.stat(absolute)
-      oid = oid or info.s_uid
-      gid = gid or info.s_gid
+      oid = oid or info.st_uid
+      gid = gid or info.st_gid
+    end
+
+    if stat.S_ISDIR(stat.st_mode) and opts.R then
+      tree.tree(absolute, nil, chown)
     end
 
     unistd.chown(absolute, oid, gid)

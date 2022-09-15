@@ -74,6 +74,7 @@ if #args == 0 and opts.D then
   for k,v in pairs(defaults) do
     print(k.."="..v)
   end
+
   os.exit(0)
 end
 

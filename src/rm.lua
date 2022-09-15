@@ -1,7 +1,6 @@
 --!lua
 local argv = ...
 
-local stat = require("posix.sys.stat")
 local errno = require("posix.errno")
 local unistd = require("posix.unistd")
 local dirent = require("posix.dirent")
@@ -50,6 +49,7 @@ local function rm(file)
   if err == errno.EISDIR and opts.r then
     dir = true
     success, _, err = unistd.rmdir(file)
+
     if err == errno.EEXIST then
       for _file in dirent.files(file) do
         rm(file.."/".._file)
@@ -73,5 +73,6 @@ for i=1, #args, 1 do
     io.stderr:write(argv[0], ": refusing to remove '/'\n")
     os.exit(1)
   end
+
   rm(args[i])
 end

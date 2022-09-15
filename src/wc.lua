@@ -46,24 +46,28 @@ local function wc(file)
   if opts.l then
     local last = 0
     local val = 0
+
     while true do
       local nex = data:find("\n", last)
       if not nex then break end
       val = val + 1
       last = nex + 1
     end
+
     out[#out+1] = tostring(val)
   end
 
   if opts.w then
     local last = 0
     local val = 0
+
     while true do
       local nex, nen = data:find("[ \n\t\r]+", last)
       if not nex then break end
       val = val + 1
       last = nen + 1
     end
+
     out[#out+1] = tostring(val)
   end
 
@@ -79,6 +83,7 @@ for i=1, #args, 1 do
   if not ok then
     io.stderr:write("wc: ", args[i], ": ", err, "\n")
     os.exit(1)
+
   else
     io.write(table.concat(ok, " "), " ", args[i], "\n")
   end
