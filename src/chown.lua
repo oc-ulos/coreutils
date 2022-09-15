@@ -6,8 +6,8 @@ local stdlib = require("posix.stdlib")
 local stat = require("posix.sys.stat")
 local unistd = require("posix.unistd")
 --local tree = require("treeutil")
-local grp = require("posix.grp")
 local pwd = require("posix.pwd")
+local grp = require("posix.grp")
 
 local options, usage, condense = getopt.build {
   { "Display this help message", false, "h", "help" },
@@ -20,7 +20,7 @@ local args, opts = getopt.getopt({
   options = options,
   exit_on_bad_opt = true,
   help_message = "pass '--help' for help"
-}, ...)
+}, {...})
 
 condense(opts)
 
@@ -57,7 +57,7 @@ if #owner > 0 and not ownerID then
   os.exit(1)
 end
 
-local groupID = grp.getpwnam(group)
+local groupID = grp.getgrnam(group)
 if #group > 0 and not groupID then
   io.stderr:write("chown: ", group, ": group not found\n")
   os.exit(1)
@@ -87,11 +87,11 @@ local function chown(file)
     unistd.chown(absolute, oid, gid)
 
   elseif not opts.s then
-    io.stderr:write("chown: ", err, "\n")
+    io.stderr:write("chown: ", file, ": ", err, "\n")
     os.exit(1)
   end
 end
 
-for i=1, #args, 1 do
+for i=2, #args, 1 do
   chown(args[i])
 end

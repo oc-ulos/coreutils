@@ -3,7 +3,7 @@
 local pwd = require("posix.pwd")
 local grp = require("posix.grp")
 local stat = require("posix.sys.stat")
-local unistd = require("posix.unistd")
+--local unistd = require("posix.unistd")
 local argv = ...
 
 local help = ([[
@@ -54,7 +54,8 @@ end
 
 -- TODO: are these saved on-disk somewhere?
 local defaults = {
-  group = unistd.getgid(),
+  uid = 0,
+  group = 0,
   comment = "",
   base = "/",
   home = "/home",
@@ -62,6 +63,12 @@ local defaults = {
   shell = "/bin/sh.lua",
   skel = "/etc/skel",
 }
+
+for ent in pwd.getpwent do
+  defaults.uid = math.max(defaults.uid, ent.pw_uid + 1)
+  defaults.group = math.max(defaults.group, ent.pw_gid + 1)
+end
+pwd.endpwent()
 
 if #args == 0 and opts.D then
   for k,v in pairs(defaults) do
@@ -75,7 +82,7 @@ local login = args[1]
 opts.b = opts.b or opts["base-dir"] or defaults.base
 opts.c = opts.c or opts.comment or defaults.comment
 opts.d = opts.d or opts["home-dir"] or defaults.home.."/"..login
-opts.u = tonumber(opts.u or opts.uid)
+opts.u = tonumber(opts.u or opts.uid) or defaults.uid
 opts.g = tonumber(opts.g or opts.gid) or defaults.group
 opts.s = opts.s or opts.shell or defaults.shell
 opts.m = opts.m or opts["create-home"]
@@ -103,17 +110,22 @@ local new = {
 
 pwd.update_passwd(new)
 
-if opts.m then
-  local ok = os.execute("mkdir -p " .. new.pw_dir)
-  if not ok then
-    os.exit(1)
-  end
-end
-
 if not opts.N then
-  grp.update_group({
+  local ok, err = grp.update_group({
     gr_name = login,
     gr_gid = opts.g,
     gr_mem = {login}
   })
+
+  if not ok then
+    io.stderr:write("useradd: update_group failed: ", err, "\n")
+  end
+end
+
+if opts.m then
+  local ok = os.execute("mkdir -p " .. new.pw_dir)
+  if not ok then
+    io.stderr:write("useradd: failed creating home directory\n")
+    os.exit(1)
+  end
 end
