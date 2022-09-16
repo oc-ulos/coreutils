@@ -51,6 +51,8 @@ local function rm(file)
     success, _, err = unistd.rmdir(file)
 
     if err == errno.EEXIST then
+      success = true
+
       for _file in dirent.files(file) do
         rm(file.."/".._file)
       end

@@ -89,7 +89,7 @@ local function chmod(file)
       print(file)
     end
 
-    if stat.S_ISDIR(rest) and opts.R then
+    if stat.S_ISDIR(rest) == 1 and opts.R then
       tree.tree(absolute, nil, chmod)
     end
 

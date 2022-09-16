@@ -84,7 +84,7 @@ local function chown(file)
       gid = gid or info.st_gid
     end
 
-    if stat.S_ISDIR(stat.st_mode) and opts.R then
+    if stat.S_ISDIR(stat.st_mode) == 1 and opts.R then
       tree.tree(absolute, nil, chown)
     end
 
