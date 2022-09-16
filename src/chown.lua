@@ -36,7 +36,7 @@ Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
   os.exit(1)
 end
 
-if opts.h or opts.help or #args == 0 then
+if opts.h or #args == 0 then
   showusage()
 end
 
@@ -86,6 +86,10 @@ local function chown(file)
 
     if stat.S_ISDIR(stat.st_mode) and opts.R then
       tree.tree(absolute, nil, chown)
+    end
+
+    if opts.v then
+      print(file)
     end
 
     unistd.chown(absolute, oid, gid)
