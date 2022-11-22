@@ -1,0 +1,77 @@
+--!lua
+-- Intentionally lacking an extension, for compatibility with
+-- scripts beginning with "#!/usr/bin/env ..."
+
+local argv = ...
+
+local stdlib = require("posix.stdlib")
+local unistd = require("posix.unistd")
+
+local args, opts = require("getopt").getopt({
+  allow_finish = true,
+  exit_on_bad_opt = true,
+  options = {
+    i = false, ["ignore-environment"] = false,
+    u = true, unset = true,
+    C = true, chdir = true,
+    S = true, ["split-string"] = true,
+    help = false,
+  },
+  can_repeat_opts = true,
+  finish_after_arg = true
+}, argv)
+
+opts.i = opts.i or opts["ignore-environment"]
+opts.C = opts.chdir or opts.C
+
+if opts.help then
+  io.stderr:write([[
+usage: env [OPTION]... [NAME=VALUE]... [COMMAND [ARG]...]
+Set up the environment (adding each NAME=VALUE pair) and run COMMAND.
+
+  -i, --ignore-environment  Ignore the existing environment
+  -u, --unset NAME          Unset environment variable NAME
+  -C, --chdir DIR           Change directory to DIR
+  --help                    Show this help message
+
+Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
+]])
+  os.exit(0)
+end
+
+local env = opts.i and {} or stdlib.getenv()
+
+for i=1, #args, 1 do
+  local name, value = args[i]:match("(.-)=(.+)")
+  if not name then break end
+  table.remove(args, i)
+  env[name] = value
+end
+
+local function exit(e)
+  io.stderr:write(argv[0], ": ", e, "\n")
+  os.exit(1)
+end
+
+local function unset(t)
+  for _, k in pairs(t) do env[k] = nil end
+end
+
+if opts.u then unset(opts.u) end
+if opts.unset then unset(opts.unset) end
+
+if opts.C then
+  local ok, err = unistd.chdir(opts.C[1])
+  if not ok then
+    exit(err)
+  end
+end
+
+if #args == 0 then
+  for k, v in pairs(env) do
+    io.write(k, "=", v, "\n")
+  end
+else
+  args[0] = table.remove(args, 1)
+  unistd.execpe(args[0], args, env)
+end
