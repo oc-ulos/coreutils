@@ -6,7 +6,7 @@ local errx = require("posix.errno").errno
 local handle = io.open("/etc/fstab")
 if not handle then
   io.stderr:write("readfstab: Warning: no /etc/fstab\n")
-  sys.exit(0)
+  return sys.exit(0)
 end
 
 for line in handle:lines() do
