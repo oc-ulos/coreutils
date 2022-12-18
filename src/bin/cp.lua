@@ -52,6 +52,7 @@ local function copy(src, dest)
 
   local outhandle, err2 = io.open(dest, "w")
   if not outhandle then
+    inhandle:close()
     return nil, dest .. ": " .. err2
   end
 
