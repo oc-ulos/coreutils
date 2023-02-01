@@ -1,4 +1,5 @@
 --!lua
+-- vim: ft=lua
 -- Intentionally lacking a .lua extension, for compatibility
 -- with scripts starting with "#!/usr/bin/env lua"
 
@@ -34,9 +35,14 @@ local args, opts = getopt({
 }, argv)
 
 local env = require("copier").copy(_G)
+
+env.arg = {[0] = "lua"}
+for i=1, #args do env.arg[i-1] = args[i] end
+
 local function eval(code, name, file, cargs)
   local ok, err
   if file then
+    env.arg[0] = code
     ok, err = loadfile(code, "t", env)
   else
     ok, err = load("return " .. code, "="..name, "t", env)
