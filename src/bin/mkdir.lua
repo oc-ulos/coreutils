@@ -61,7 +61,7 @@ for i=1, #args, 1 do
   end
 
   local success, err = stat.mkdir(arg, opts.m or 0x1FF)
-  if opts.p and err == errno.EEXIST then success = true end
+  if err == errno.EEXIST then success = true end
 
   if not success then
     io.stderr:write(argv[0]..": "..errno.errno(err).."\n")

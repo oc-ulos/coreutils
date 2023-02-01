@@ -1,4 +1,5 @@
 --!lua
+-- vim: ft=lua
 -- Intentionally lacking an extension, for compatibility with
 -- scripts beginning with "#!/usr/bin/env ..."
 
@@ -40,13 +41,16 @@ Copyright (c) 2022 ULOS Developers under the GNU GPLv3.
 end
 
 local env = opts.i and {} or stdlib.getenv()
+local rm = 0
 
 for i=1, #args, 1 do
   local name, value = args[i]:match("(.-)=(.+)")
   if not name then break end
-  table.remove(args, i)
+  rm = i
   env[name] = value
 end
+
+for i=1, rm do table.remove(args, 1) end
 
 local function exit(e)
   io.stderr:write(argv[0], ": ", e, "\n")
