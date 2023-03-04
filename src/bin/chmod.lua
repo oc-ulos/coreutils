@@ -18,6 +18,7 @@ local options, usage, condense = getopt.build {
 local args, opts = getopt.getopt({
   options = options,
   exit_on_bad_opt = true,
+  exclude_numbers = true,
   help_message = "pass '--help' for help"
 }, {...})
 
@@ -31,8 +32,9 @@ Change the mode of each FILE to MODE.
 MODE may be:
   - a string rwxrwxrwx, like shown by ls
   - a three-digit octal number 777, like standard
+  - a string matching the pattern [ugoa][+-=][rwx], like standard
 
-If prefixed by 'a' or 'r', then MODE will be added or removed from each FILE's
+If prefixed by '+' or '-', then MODE will be added or removed from each FILE's
 existing mode respectively.
 
 options:
@@ -48,10 +50,26 @@ if opts.h or #args == 0 then
 end
 
 local newMode = args[1]
-local ar
-if newMode:match("^[ar]") and #newMode == 4 or #newMode == 10 then
+local ar, sub
+if newMode:match("^[%+%-%=]") and #newMode == 4 or #newMode == 10 then
   ar = newMode:sub(1, 1)
   newMode = newMode:sub(2)
+end
+
+if newMode:match("^[ugoa]?[%+%-%=]?[rwx]") then
+  local ugoa, pme, rwx = newMode:match("^([ugoa]?)([%+%-%=]?)([rwx])")
+  if (ugoa and not pme) or not rwx then
+    io.stderr:write("chmod: bad mode\n")
+    os.exit(1)
+  end
+  ar = pme
+  ugoa = #ugoa > 0 and ugoa or "a"
+  local r, w, x = rwx:match("(r?)(w?)(x?)")
+  r, w, x = #r > 0 and r or "-", #w > 0 and w or "-", #x > 0 and x or "-"
+  if ugoa == "u" then sub="u" newMode = r..w..x.."------" end
+  if ugoa == "g" then sub="g" newMode = "---"..r..w..x.."---" end
+  if ugoa == "o" then sub="o" newMode = "------"..r..w..x end
+  if ugoa == "a" then newMode = (r..w..x):rep(3) end
 end
 
 if tonumber(newMode) then
@@ -75,14 +93,25 @@ local function chmod(file)
     local newPerms = 0
     local rest = info.st_mode & stat.S_IFMT
 
-    if ar == "a" then
+    if ar == "+" then
       newPerms = oldPerms | newMode
 
-    elseif ar == "r" then
+    elseif ar == "-" then
       newPerms = oldPerms & ~newMode
 
     else
-      newPerms = newMode
+      if sub == "u" then
+        newPerms = (oldPerms & (stat.S_IRWXG | stat.S_IRWXO)) | newMode
+
+      elseif sub == "g" then
+        newPerms = (oldPerms & (stat.S_IRWXU | stat.S_IRWXO)) | newMode
+
+      elseif sub == "o" then
+        newPerms = (oldPerms & (stat.S_IRWXU | stat.S_IRWXG)) | newMode
+
+      else
+        newPerms = newMode
+      end
     end
 
     if (opts.c and oldPerms ~= newPerms) or opts.v then
