@@ -4,7 +4,18 @@
 local termio = require("termio")
 local sleep = require("posix.unistd").sleep
 
-local file = ...
+local file = arg[1]
+if file == "-h" or file == "--help" then
+  io.stderr:write([[
+usage: edit FILE
+This edit is a simple text editor focusing entirely on speed.
+It does not have bells and whistles.  Usage should be intuitive,
+and more or less identical to OpenOS's editor.
+
+Copyright (c) 2021 ULOS Developers under the GNU GPLv3.
+]])
+  os.exit(0)
+end
 
 local buffer = {""}
 local cache = {}

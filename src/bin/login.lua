@@ -10,6 +10,11 @@ local stdlib = require("posix.stdlib")
 local uname = sys.uname()
 io.stdout:write("\27[m\27[2J\27[H\n", uname.sysname, " ", uname.release, "\n")
 
+if sys.getuid() ~= 0 then
+  io.stderr:write("login: refusing to run as non-root user\n")
+  os.exit(1)
+end
+
 while true do
   if not unistd.isatty(0) or not unistd.isatty(1) then
     io.stderr:write("login: refusing to run when stdin/out are not TTYs\n")
@@ -32,8 +37,8 @@ while true do
   local pwent = pwd.getpwnam(name)
   if pwent and (unistd.crypt(password) == pwent.pw_passwd) then
     io.write("\n")
-    sys.setuid(pwent.pw_uid)
-    sys.setgid(pwent.pw_gid)
+    try(sys.setuid(pwent.pw_uid))
+    try(sys.setgid(pwent.pw_gid))
     sys.ioctl(0, "setlogin", pwent.pw_uid)
     sys.setsid()
     stdlib.setenv("USER", pwent.pw_name)
