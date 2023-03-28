@@ -3,12 +3,12 @@
 local stat = require("posix.sys.stat")
 local sizes = require("sizes")
 local getopt = require("getopt")
-local stdlib = require("posix.stdlib")
-local treeutil = require("treeutil")
+local dirent = require("posix.dirent")
 
 local args, opts, usage = getopt.process {
   {"end each output line with NUL, not newline", false, "0", "null"},
   {"write sizes for each file, not just directories", false, "a", "all"},
+  {"show apparent sizes rather than filesystem space usage", false, "apparent"},
   {"produce a grand total", false, "c", "total"},
   {"print sizes in human readable format", false, "h", "human-readable"},
   {"like -h, but use powers of 1000, not 1024", false, "si"},
@@ -34,29 +34,37 @@ Copyright (c) 2023 ULOS Developers under the GNU GPLv3.
   os.exit(0)
 end
 
-local grand_total = 0
 local delim = opts["0"] and "\0" or "\n"
 
-local function foreach(file, info)
-  local size = info.st_size
-  local total = size
+local function summarize(path)
+  local info = stat.stat(path)
+  -- this may not be the most accurate way to do it, but i'm doing it anyway
+  local total = (opts.apparent and info.st_size)
+    or (info.st_blocks * info.st_blksize)
   if stat.S_ISDIR(info.st_mode) ~= 0 then
-    total = total + -- TODO TODO TODO TODO
-    treeutil.tree(file, nil, foreach)
+    for file in dirent.files(path) do
+      if file ~= "." and file ~= ".." then
+        total = total + summarize(path.."/"..file)
+      end
+    end
   end
 
   -- display output
-  if opts.h then size = sizes.format(size) else size = tostring(size) end
+  local size
+  if opts.h then size = sizes.format(total) else size = tostring(total) end
   if stat.S_ISDIR(info.st_mode) ~= 0 or opts.a then
-    io.write(total .. "\t" .. file .. delim)
+    io.write(size .. "\t" .. path .. delim)
   end
-  grand_total = grand_total + total
-  currentTotal = total
-  -- hack: stop recursion
-  info.st_mode = -1
+  return total
 end
 
 if not args[1] then args[1] = "." end
+local grandTotal = 0
 for i=1, #args do
-  treeutil.tree(args[i], nil, foreach)
+  grandTotal = grandTotal + summarize(args[i])
+end
+
+if opts.c then
+  local size = opts.h and sizes.format(grandTotal) or tostring(grandTotal)
+  io.write(size .. "\ttotal" .. delim)
 end
