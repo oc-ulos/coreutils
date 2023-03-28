@@ -37,8 +37,8 @@ while true do
   local pwent = pwd.getpwnam(name)
   if pwent and (unistd.crypt(password) == pwent.pw_passwd) then
     io.write("\n")
-    try(sys.setuid(pwent.pw_uid))
-    try(sys.setgid(pwent.pw_gid))
+    sys.setuid(pwent.pw_uid)
+    sys.setgid(pwent.pw_gid)
     sys.ioctl(0, "setlogin", pwent.pw_uid)
     sys.setsid()
     stdlib.setenv("USER", pwent.pw_name)
