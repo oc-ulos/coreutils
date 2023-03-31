@@ -125,6 +125,10 @@ end
 
 if opts.m then
   local ok = os.execute("mkdir -p " .. new.pw_dir)
+  if ok then
+    -- TODO: syscall this instead
+    ok = os.execute("chown test:test " .. new.pw_dir)
+  end
   if not ok then
     io.stderr:write("useradd: failed creating home directory\n")
     os.exit(1)

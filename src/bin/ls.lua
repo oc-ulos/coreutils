@@ -183,7 +183,7 @@ local function list(base, file, pad)
 end
 
 for i=1, #args, 1 do
-  if #args > 1 then print(argv[i]..":") end
+  if #args > 1 and not opts.l then print(args[i]..":") end
   local statx, eno = stat.lstat(args[i])
 
   if not statx then
