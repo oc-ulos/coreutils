@@ -3,7 +3,7 @@
 local pwd = require("posix.pwd")
 local grp = require("posix.grp")
 local stat = require("posix.sys.stat")
---local unistd = require("posix.unistd")
+local unistd = require("posix.unistd")
 local argv = ...
 
 local help = ([[
@@ -126,8 +126,7 @@ end
 if opts.m then
   local ok = os.execute("mkdir -p " .. new.pw_dir)
   if ok then
-    -- TODO: syscall this instead
-    ok = os.execute("chown test:test " .. new.pw_dir)
+    ok = unistd.chown(new.pw_dir, new.pw_uid, new.pw_gid)
   end
   if not ok then
     io.stderr:write("useradd: failed creating home directory\n")
