@@ -88,7 +88,8 @@ local colors = {
   c = 93,
   b = 93,
   f = 93,
-  l = 36
+  l = 36,
+  ["?"] = 91,
 }
 
 -- executable permissions bitmap
