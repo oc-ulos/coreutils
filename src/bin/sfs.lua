@@ -106,17 +106,19 @@ end
 local function readBlockMap()
   local data = readBlock(constants.blockmap)
   bmap = {}
+  local x = 0
   for c in data:gmatch(".") do
     c = c:byte()
     for i=0, 7 do
-      bmap[#bmap+1] = (c & 2^i ~= 0) and 1 or 0
+      bmap[x] = (c & 2^i ~= 0) and 1 or 0
+      x = x + 1
     end
   end
 end
 
 local function writeBlockMap()
   local data = ""
-  for i=1, #bmap, 8 do
+  for i=0, #bmap, 8 do
     local c = 0
     for j=0, 7 do
       c = c | (2^j)*bmap[i+j]
@@ -135,13 +137,17 @@ local function allocateBlocks(count)
     until bmap[index] == 0 or not bmap[index]
     blocks[#blocks+1] = index
     bmap[index] = 1
+    print("allocate block " .. index)
+    writeBlock(index, null:rep(sblock.blocksize))
   end
   if index > #bmap then error("out of space") end
+  sblock.blocks_used = sblock.blocks_used + #blocks
   return blocks
 end
 
 local function freeBlocks(blocks)
   for i=1, #blocks do
+    sblock.blocks_used = sblock.blocks_used - bmap[blocks[i]]
     bmap[blocks[i]] = 0
   end
 end
@@ -337,6 +343,112 @@ local function getlisting(dir)
   end
 end
 
+local function getBlock(ent, pos, create, all)
+  local count = math.ceil((pos+1) / (sblock.blocksize-3))
+  local current = ent.datablock
+  local all = {}
+  for i=1, count-1 do
+    local data = readBlock(current)
+    local nxt = ("<I3"):unpack(data:sub(-3))
+    if nxt == 0 then
+      if create then
+        nxt = allocateBlocks(1)[1]
+        data = data:sub(1,-4)..("<I3"):pack(nxt)
+        writeBlock(current, data)
+      else
+        if all then return current, all end
+        return current
+      end
+    end
+    all[#all+1] = current
+    current = nxt
+  end
+  if all then return current, all end
+  return current
+end
+
+local function open(file, mode)
+  print("open '"..file.."'")
+  local entry, eid = resolve(file)
+  if not entry then
+    print("file does not exist!!!")
+    return
+  end
+
+  local pos = 0
+  if mode == "w" then
+    local final, blocks = getBlock(entry, 0xFFFFFF, false, true)
+    blocks[#blocks+1] = final
+    freeBlocks(blocks)
+    entry.datablock = allocateBlocks(1)[1]
+    entry.size = 0
+  elseif mode == "a" then
+    pos = entry.size
+  end
+
+  return {
+    entry = entry, eid = eid, pos = 0, mode = mode
+  }
+end
+
+local function seek(fd, pos)
+  if fd.mode == "w" then
+    fd.entry.size = math.max(0, math.min(fd.entry.size, pos))
+    getBlock(fd.entry, pos, true)
+  end
+  fd.pos = math.max(0, math.min(fd.entry.size, pos))
+end
+
+local function write(fd, data)
+  local offset = fd.pos % (sblock.blocksize-3)
+
+  repeat
+    local blockID = getBlock(fd.entry, fd.pos, true)
+    local block = readBlock(blockID)
+    local write = data:sub(1, (sblock.blocksize-3) - offset)
+    data = data:sub(#write+1)
+    fd.pos = fd.pos + #write
+    fd.entry.size = math.max(fd.entry.size, fd.pos)
+
+    if #write == sblock.blocksize-3 then
+      block = write .. block:sub(-3)
+    else
+      block = block:sub(0, offset) .. write ..
+        block:sub(offset + #write + 1)
+    end
+
+    writeBlock(blockID, block)
+  until #data == 0
+
+  return true
+end
+
+local function read(fd, len)
+  if fd.pos < fd.entry.size then
+    len = math.min(len, fd.entry.size - fd.pos)
+    local offset = fd.pos % (sblock.blocksize-3) + 1
+    local data = ""
+
+    repeat
+      local blockID = getBlock(fd.entry, fd.pos)
+      local block = readBlock(blockID)
+      local read = block:sub(1,-4):sub(offset, offset+len-1)
+      print(offset,#read,fd.pos)
+      data = data .. read
+      fd.pos = fd.pos + #read
+      offset = fd.pos % (sblock.blocksize-3) + 1
+      len = len - #read
+    until len <= 0
+
+    return data
+  end
+end
+
+local function close(fd)
+  if fd.mode == "w" then fd.entry.modified = time() end
+  writeNamelistEntry(fd.eid, fd.entry)
+end
+
 local function format(fast)
   print("formatting " .. (fast and "(fast) " or "") .. "with block size 1024")
   print("writing superblock...")
@@ -346,25 +458,29 @@ local function format(fast)
   if not defaults then
     error("no default for fs size " .. size)
   end
+  local reserve = math.ceil(defaults.nl/defaults.blk + 1 + defaults.bmap/defaults.blk)
+  print("reserving " .. reserve .. " blocks")
   local superblock = pack("superblock", {
     flags = 0,
     revision = 0,
     nl_blocks = defaults.nl/defaults.blk,
     blocksize = defaults.blk,
     blocks = math.min(defaults.bmap*8, (size/defaults.blk)),
-    blocks_used = 0,
+    blocks_used = reserve
   })
   writeBlock(constants.superblock, superblock)
 
   print("writing blockmap...")
   -- write a whole block's worth
-  local map = null:rep(math.ceil(defaults.bmap/defaults.blk)*defaults.blk)
-  -- reserve first few blocks for superblock, namelist, and blockmap
-  local reserve = defaults.nl/defaults.blk + 1 * #map/defaults.blk
-  for i=1, reserve do
-    map = map:sub(0,i-1)..string.char(map:sub(i,i):byte()|2^(i%8))..map:sub(i+1)
+  bmap = {}
+  for i=0, (defaults.bmap*8)-1 do
+    bmap[i] = 0
   end
-  writeBlock(constants.blockmap, map)
+  -- reserve first few blocks for superblock, namelist, and blockmap
+  for i=0, reserve do
+    bmap[i] = 1
+  end
+  writeBlockMap()
 
   io.write("writing namelist... ")
 
@@ -416,11 +532,55 @@ mkfileentry("dir", constants.F_DIR | 448 | 56 | 7)
 mkfileentry("dir/test", constants.F_REGULAR | 448 | 56 | 7)
 mkfileentry("does/not/exist", constants.F_REGULAR | 448 | 56 | 7)
 
-print(getlisting("/"))
-print(getlisting("/dir"))
-rmfileentry("/dir/test")
-print(getlisting("/dir"))
-rmfileentry("/test")
-print(getlisting("/"))
+print("creating file 'test'")
+local handle = open("test", "w")
+write(handle, "this is some test data.\n")
+close(handle)
+
+--print(getlisting("/"))
+--print(getlisting("/dir"))
+
+print("read back file 'test'")
+handle = open("test", "r")
+print("expect 'this is some test data.\n', got '".. read(handle, 24).."'")
+seek(handle, 15)
+print("expect 'st data.\n', got '".. read(handle, 9).."'")
+close(handle)
+
+print("--TEST MULTI-BLOCK FILES--")
+local data = string.rep("#@$%",1024)
+handle = open("dir/test", "w")
+write(handle, data)
+close(handle)
+
+print("read back file, verify data")
+handle = open("dir/test","r")
+local written = read(handle, #data)
+close(handle)
+if written ~= data then
+  print("\27[91mmismatch!!!!!!\27[39m")
+  print(string.format("original length: %d, readback length: %d", #data, #written))
+  for i=1, #written do
+    if written:sub(i,i)~=data:sub(i,i) then
+      print(string.format("mismatched character at %d",i))
+      print(string.format("original '%s', readback '%s'", data:sub(i,i),written:sub(i,i)))
+    end
+  end
+else
+  print("\27[92mmatch!!!\27[39m")
+end
+
+if false then
+  print(getlisting("/"))
+  print(getlisting("/dir"))
+  rmfileentry("/dir/test")
+  print(getlisting("/dir"))
+  rmfileentry("/test")
+  print(getlisting("/"))
+end
+
+print("save superblock/blockmap")
+writeSuperblock()
+writeBlockMap()
 
 hd:close()
