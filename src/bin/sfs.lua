@@ -3,12 +3,14 @@
 -- prototyped in userspace, should be able to port it to the kernel
 -- pretty easily
 
+local args = ...
+
 local hd = assert(io.open("/dev/hda", "rwb"))
 
 local structures = {
   superblock = {
-    pack = "<BI2I2I3I3",
-    names = {"flags", "nl_blocks", "blocksize", "blocks", "blocks_used"}
+    pack = "<BBI2I2I3I3",
+    names = {"flags", "revision", "nl_blocks", "blocksize", "blocks", "blocks_used"}
   },
   nl_entry = {
     pack = "<I2I2I2I2I2I4I8I8I2I2c30",
@@ -69,69 +71,6 @@ local sizes = {
   [4096] = {blk = 1024, nl = 196608, bmap = 512},
 }
 local null = "\0"
-
-local function format()
-  print("formatting with block size 1024")
-  print("writing superblock...")
-  local size = hd:seek("end")
-  hd:seek("set")
-  local defaults = sizes[size/1024]
-  if not defaults then
-    error("no default for fs size " .. size)
-  end
-  local superblock = pack("superblock", {
-    flags = 0,
-    nl_blocks = defaults.nl/defaults.blk,
-    blocksize = defaults.blk,
-    blocks = math.min(defaults.bmap*8, (size/defaults.blk)),
-    blocks_used = 0,
-  })
-  hd:write(superblock .. null:rep(defaults.blk - #superblock))
-
-  print("writing blockmap...")
-  -- write a whole block's worth
-  local map = null:rep(math.ceil(defaults.bmap/defaults.blk)*defaults.blk)
-  -- reserve first few blocks for superblock, namelist, and blockmap
-  local reserve = defaults.nl/defaults.blk + 1 * #map/defaults.blk
-  for i=1, reserve do
-    map = map:sub(0,i-1)..string.char(map:sub(i,i):byte()|2^(i%8))..map:sub(i+1)
-  end
-  hd:write(map)
-
-  io.write("writing namelist.../")
-  local nl_entry_root = pack("nl_entry", {
-    flags = 0x4000 | -- directory
-      -- default root permissions rwx-r-xr-x
-      0x100 | 0x80 | 0x40 |
-      0x20 | 0x10 |
-      0x4 | 0x1,
-    datablock = 1,
-    next_entry = 0,
-    last_entry = 0,
-    parent = 0,
-    size = 0,
-    -- no userspace real-time facilities yet, so use os.clock ig
-    created = time(),
-    modified = time(),
-    uid = 0,
-    gid = 0,
-    fname = ""
-  })
-  local nl_entry_blank = null:rep(64)
-  hd:write(nl_entry_root)
-  local spin = setmetatable({v=0,"-","\\","|","/"}, {__call=function(s)
-    s.v = (s.v%4) + 1
-    return s[s.v]
-  end})
-  for i=1, (defaults.nl/defaults.blk * (defaults.blk/64)) - 1 do
-    hd:write(nl_entry_blank)
-    if i % 64 == 0 then
-      io.stdout:write("\27[D"..spin())
-      io.stdout:flush()
-    end
-  end
-  print("\27[D \nformatting done!")
-end
 
 local function split(path)
   local segs = {}
@@ -208,12 +147,14 @@ local function freeBlocks(blocks)
 end
 
 local function readNamelistEntry(n)
-  local offset = n * 64 % 512
+  local offset = n * 64 % 512 + 1
   local block = math.floor(n/8)
   -- superblock is first block, blockmap is second, namelist comes after those
   local blockData = readBlock(block+constants.namelist)
   local namelistEntry = blockData:sub(offset, offset + 63)
-  return unpack("nl_entry", namelistEntry)
+  local ent = unpack("nl_entry", namelistEntry)
+  ent.fname = ent.fname:gsub("\0", "")
+  return ent
 end
 
 local function writeNamelistEntry(n, ent)
@@ -229,22 +170,24 @@ end
 local knownNamelist = {}
 local maxKnown = 0
 local function allocateNamelistEntry()
-  local lastBlock = block
-  local blockData
-  for i=1, #knownNamelist do
+  for i=1, maxKnown do
     if not knownNamelist[i] then
       knownNamelist[i] = true
       return i
     end
   end
-  for n=1, sblock.nl_blocks*8 do
-    local offset = n * 64 % 512
+  local blockData
+  local lastBlock = 0
+  for n=0, sblock.nl_blocks*8 do
+    local offset = n * 64 % 512 + 1
     local block = math.floor(n/8)
-    blockData = blockData or readBlock(offset+constants.namelist)
+    if block ~= lastBlock then blockData = nil end
+    blockData = blockData or readBlock(block+constants.namelist)
     local namelistEntry = blockData:sub(offset, offset + 63)
     local v = unpack("nl_entry", namelistEntry)
     knownNamelist[n] = true
     maxKnown = math.max(maxKnown, n)
+    --print("V", n, v.flags, v.fname)
     if v.flags == 0 then
       return n
     end
@@ -298,17 +241,23 @@ local function getLast(ent)
   return readNamelistEntry(ent.last_entry), ent.last_entry
 end
 
-local function resolveParent(path)
+local function resolve(path, offset)
+  offset = offset or 0
   local segments = split(path)
   local dir = readNamelistEntry(0)
-  local current, cid = getNext(dir)
-  for i=1, #segments - 1 do
-    while current and current.fname ~= segments[segment] do
+  local current, cid = dir, 0
+  if #segments == offset then return current, cid end
+  for i=1, #segments - offset do
+    --print("search '"..current.fname.."' ("..cid..")")
+    current, cid = readNamelistEntry(current.datablock), current.datablock
+    while current and current.fname ~= segments[i] do
+      --print("want '"..segments[i].."'", "have '"..current.fname.."' ("..cid..")")
       current, cid = getNext(current)
     end
     if not current then
-      error("path not found")
+      return nil, "path not found"
     end
+    --print("want '"..segments[i].."'", "have '"..current.fname.."' ("..cid..")")
   end
   return current, cid
 end
@@ -316,26 +265,37 @@ end
 local function mkfileentry(name, flags)
   print("creating entry for '" .. name .."'")
   local segments = split(name)
-  local parent, pid = resolveParent(name)
-  local n = allocateNamelistEntry()
+  local insurance = resolve(name)
+  if insurance then
+    print("file already exists!!!")
+    return
+  end
+  local parent, pid = resolve(name, 1)
+  if not parent then --[[print(pid)]] return nil end
+  --print("parent is " .. pid, parent.flags & constants.F_TYPE, constants.F_DIR)
   if parent.flags & constants.F_TYPE ~= constants.F_DIR then
     error("parent is not a directory, panicing")
   end
   local last_entry = 0
+  --print("parent datablock " .. parent.datablock)
+  local n = allocateNamelistEntry()
   if parent.datablock == 0 then
     parent.datablock = n
+    writeNamelistEntry(pid, parent)
   else
     local first = readNamelistEntry(parent.datablock)
-    local last, index
+    local last, index = first, parent.datablock
     repeat
-      local next_entry, next_index = getNext(last or first)
+      local next_entry, next_index = getNext(last)
       if next_entry then last, index = next_entry, next_index end
     until not next_entry
+    --print(last.fname, index)
     last.next_entry = n
     last_entry = index
     writeNamelistEntry(index, last)
   end
 
+  --print("writing", segments[#segments], "to", n, flags)
   writeNamelistEntry(n, {
     flags = flags,
     datablock = 0,
@@ -351,8 +311,116 @@ local function mkfileentry(name, flags)
   })
 end
 
-format()
+local function rmfileentry(name)
+  print("removing file entry '"..name.."'")
+  local segments = split(name)
+  local entry, eid = resolve(name)
+  if not entry then
+    print("file was not found!!")
+  else
+    freeNamelistEntry(eid)
+  end
+end
+
+local function getlisting(dir)
+  print("get directory listing of '"..dir.."'")
+  local entry, eid = resolve(dir)
+  if entry.flags & constants.F_TYPE ~= constants.F_DIR then
+    print("not a directory!!!")
+  else
+    local current, cid = readNamelistEntry(entry.datablock), entry.datablock
+    if cid == 0 then return end
+    repeat
+      print(current.fname)
+      current, cid = getNext(current)
+    until not current
+  end
+end
+
+local function format(fast)
+  print("formatting " .. (fast and "(fast) " or "") .. "with block size 1024")
+  print("writing superblock...")
+  local size = hd:seek("end")
+  hd:seek("set")
+  local defaults = sizes[size/1024]
+  if not defaults then
+    error("no default for fs size " .. size)
+  end
+  local superblock = pack("superblock", {
+    flags = 0,
+    revision = 0,
+    nl_blocks = defaults.nl/defaults.blk,
+    blocksize = defaults.blk,
+    blocks = math.min(defaults.bmap*8, (size/defaults.blk)),
+    blocks_used = 0,
+  })
+  writeBlock(constants.superblock, superblock)
+
+  print("writing blockmap...")
+  -- write a whole block's worth
+  local map = null:rep(math.ceil(defaults.bmap/defaults.blk)*defaults.blk)
+  -- reserve first few blocks for superblock, namelist, and blockmap
+  local reserve = defaults.nl/defaults.blk + 1 * #map/defaults.blk
+  for i=1, reserve do
+    map = map:sub(0,i-1)..string.char(map:sub(i,i):byte()|2^(i%8))..map:sub(i+1)
+  end
+  writeBlock(constants.blockmap, map)
+
+  io.write("writing namelist... ")
+
+  if not fast then
+    hd:seek("set",constants.namelist*1024)
+    for i=1, (defaults.nl/defaults.blk * (defaults.blk/64)) - 1 do
+      hd:write(null:rep(64))
+      if i % 64 == 0 then
+        io.stdout:write("\27[21G"..i.."/"..math.floor(defaults.nl/defaults.blk*(defaults.blk/64))-1):flush()
+      end
+    end
+  else
+    print("\27[D \nfast mode - not zeroing namelist")
+  end
+
+  local nl_entry_root = {
+    flags = constants.F_DIR | -- directory
+      -- default root permissions rwx-r-xr-x
+      0x100 | 0x80 | 0x40 |
+      0x20 | 0x10 |
+      0x4 | 0x1,
+    datablock = 0,
+    next_entry = 0,
+    last_entry = 0,
+    parent = 0,
+    size = 0,
+    -- no userspace real-time facilities yet, so use os.clock ig
+    created = time(),
+    modified = time(),
+    uid = 0,
+    gid = 0,
+    fname = ""
+  }
+  writeNamelistEntry(0, nl_entry_root)
+  print("\27[D \nformatting done!")
+end
+
+if args[1] == "-nf" then
+  print("skipping format")
+else
+  format(args[1] == "-ff")
+end
+print("reading superblock")
 readSuperblock()
+print("reading blockmap")
 readBlockMap()
+mkfileentry("test", constants.F_REGULAR | 448 | 56 | 7)
+mkfileentry("dir", constants.F_DIR | 448 | 56 | 7)
+mkfileentry("dir/test", constants.F_REGULAR | 448 | 56 | 7)
+mkfileentry("does/not/exist", constants.F_REGULAR | 448 | 56 | 7)
+
+print(getlisting("/"))
+print(getlisting("/dir"))
+rmfileentry("/dir/test")
+print(getlisting("/dir"))
+rmfileentry("/test")
+print(getlisting("/"))
 
 hd:close()
