@@ -56,7 +56,7 @@ if newMode:match("^[%+%-%=]") and #newMode == 4 or #newMode == 10 then
   newMode = newMode:sub(2)
 end
 
-if newMode:match("^[ugoa]?[%+%-%=]?[rwx]") then
+if newMode:match("^[ugoa]?[%+%-%=][rwx]") then
   local ugoa, pme, rwx = newMode:match("^([ugoa]?)([%+%-%=]?)([rwx])")
   if (ugoa and not pme) or not rwx then
     io.stderr:write("chmod: bad mode\n")
