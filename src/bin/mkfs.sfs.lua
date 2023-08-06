@@ -2,7 +2,7 @@
 -- mkfs.sfs - create a SimpleFS formatted volume
 
 local args, opts, usage = require("getopt").process {
-  {"Filesystem label", "LABEL", "l", "label"}
+  {"Filesystem label", "LABEL", "l", "label"},
   {"Override block size", "SIZE", "b", "bs", "blocksize"},
   {"Override file count", "COUNT", "f", "files"},
   {"Format mounted filesystem (DANGEROUS)", false, "F", "force"},
@@ -10,7 +10,7 @@ local args, opts, usage = require("getopt").process {
   {"Show this help message", false, "h", "help"},
   exit_on_bad_opt = true,
   help_message = "pass '--help' for usage information\n",
-  argv = ...
+  args = ...
 }
 
 local function showusage()
