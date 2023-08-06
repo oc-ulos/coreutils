@@ -1,16 +1,69 @@
 --!lua
--- test simplefs driver
--- prototyped in userspace, should be able to port it to the kernel
--- pretty easily
+-- mkfs.sfs - create a SimpleFS formatted volume
 
-local args = ...
+local args, opts, usage = require("getopt").process {
+  {"Filesystem label", "LABEL", "l", "label"}
+  {"Override block size", "SIZE", "b", "bs", "blocksize"},
+  {"Override file count", "COUNT", "f", "files"},
+  {"Format mounted filesystem (DANGEROUS)", false, "F", "force"},
+  {"I know what I'm doing, don't prompt me", false, "i-know-what-im-doing"},
+  {"Show this help message", false, "h", "help"},
+  exit_on_bad_opt = true,
+  help_message = "pass '--help' for usage information\n",
+  argv = ...
+}
 
-local hd = assert(io.open("/dev/hda", "rwb"))
+local function showusage()
+  io.stderr:write(([[
+usage: mkfs.sfs [options] VOLUME
+Format the given block device as a SimpleFS volume.
+
+options:
+%s
+
+Copyright (c) 2023 ULOS Developers under the GNU GPLv3.
+]]):format(usage))
+  os.exit(1)
+end
+
+if #args == 0 or opts.h then
+  showusage()
+end
+
+local device = args[1]
+
+if opts.b then
+  opts.b = tonumber(opts.b)
+  if type(opts.b) ~= "number" then
+    io.stderr:write("mkfs.sfs: argument to -b must be a number\n")
+    os.exit(1)
+  end
+
+  local log = math.log(opts.b, 2)
+  if opts.b < 512 or math.floor(log) ~= log then
+    io.stderr:write("mkfs.sfs: block size must be a power of 2 and at least 512")
+    os.exit(1)
+  end
+end
+
+if opts.f then
+  opts.f = tonumber(opts.f)
+  if type(opts.f) ~= "number" then
+    io.stderr:write("mkfs.sfs: argument to -f must be a number\n")
+    os.exit(1)
+  end
+end
+
+local hd, err = io.open(device, "rwb")
+if not hd then
+  io.stderr:write("mkfs.sfs: ", err, "\n")
+  os.exit(2)
+end
 
 local structures = {
   superblock = {
-    pack = "<c4BBI2I2I3I3",
-    names = {"signature", "flags", "revision", "nl_blocks", "blocksize", "blocks", "blocks_used"}
+    pack = "<c4BBI2I2I3I3c19",
+    names = {"signature", "flags", "revision", "nl_blocks", "blocksize", "blocks", "blocks_used", "label"}
   },
   nl_entry = {
     pack = "<I2I2I2I2I2I4I8I8I2I2c30",
@@ -51,13 +104,12 @@ local function time()
 end
 
 -- determine optimal-ish sizes for various filesystem bits
--- optionally specify blocksize
-local function getOptimalSizes(fssize, blocksize)
+local function getOptimalSizes(fssize)
   -- maximum PRACTICAL number of blocks is 65536
   -- maximum ACTUAL number of blocks is 16777216 so use that instead
-  blocksize = blocksize or math.ceil(fssize/0xFFFFFF)*1024
+  blocksize = opts.b or math.ceil(fssize/0xFFFFFF)*1024
   -- we want no more files than blocks, so set namelist size based on that
-  local nl_size = fssize/blocksize*64
+  local nl_size = opts.f or (fssize/blocksize)*64
   -- determine blockmap size from block count
   local bmap_size = fssize/blocksize/8
   return blocksize, nl_size, bmap_size
@@ -100,7 +152,7 @@ end
 
 local function format()
   local size = hd:seek("end")
-  if args[1] == "-e" then
+  if opts.e then
     print("zeroing drive")
     local N = null:rep(4096)
     hd:seek("set")
@@ -125,7 +177,9 @@ local function format()
     nl_blocks = snl/sblk,
     blocksize = sblk,
     blocks = math.min(sbmap*8, (size/sblk)),
-    blocks_used = reserve
+    blocks_used = reserve,
+    label = opts.l or
+      "simplefs-"..math.floor(math.random(1000000000, 9999999999))
   })
   writeBlock(constants.superblock, superblock)
 
@@ -168,6 +222,19 @@ local function format()
   }
   writeNamelistEntry(0, nl_entry_root)
   print("formatting done!")
+end
+
+if readBlock(0):sub(5,5):byte() & 1 ~= 0 then
+  io.stderr:write("\27[91m", device, ": filesystem is dirty, and may be mounted\27[39m\n")
+  if opts.F then
+    if not opts["i-know-what-im-doing"] then
+      io.write("REALLY format ", device, "? [y/N] ")
+      if (io.read() or ""):lower() ~= "y" then os.exit(3) end
+    end
+  else
+    io.stderr:write("not formatting ", device, "\n")
+    os.exit(3)
+  end
 end
 
 format()
