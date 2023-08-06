@@ -100,6 +100,14 @@ end
 
 local function format()
   local size = hd:seek("end")
+  if args[1] == "-e" then
+    print("zeroing drive")
+    local N = null:rep(4096)
+    hd:seek("set")
+    for i=1, size/4096 do
+      hd:write(N)
+    end
+  end
   hd:seek("set")
   local sblk, snl, sbmap = getOptimalSizes(size)
   print("formatting as SimpleFS")
@@ -133,16 +141,12 @@ local function format()
   end
   writeBlockMap()
 
-  io.write("writing namelist... ")
+  print("writing namelist... ")
 
   hd:seek("set",constants.namelist*1024)
-  for i=1, (snl/sblk * (sblk/64)) - 1 do
-    hd:write(null:rep(64))
-    if i % 64 == 0 then
-      io.stdout:write("\27[21G"..i.."/"..math.floor(snl/sblk*(sblk/64))-1):flush()
-    end
+  for i=1, (snl/sblk * (sblk/512)) - 1 do
+    hd:write(null:rep(512))
   end
-  io.write("\n")
 
   local nl_entry_root = {
     flags = constants.F_DIR | -- directory
