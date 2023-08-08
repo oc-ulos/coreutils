@@ -125,10 +125,8 @@ for i=1, #specs do
   io.stderr:write("mkpart: partition '", label, "' size=", spec.size/2, "K\n")
   local start = offset
   offset = offset + spec.size
-  print(#parttable)
   parttable = parttable .. pack_format:pack(
     start, spec.size, spec.type, "", label)
-  print(#parttable)
 end
 
 if #parttable > sectorsize then
