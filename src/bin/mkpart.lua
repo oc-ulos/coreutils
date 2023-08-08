@@ -22,7 +22,7 @@ Create an OSDI partition table on VOLUME.
 options:
 %s
 
-The SPEC given to -p must be of the format N:a=b,c=d;N2:a=e,c=f where
+The SPEC given to -p must be of the format N:a=b,c=d:N2:a=e,c=f where
 N and N2 are partition IDs and others are options.
 
 partition options:
@@ -49,8 +49,8 @@ if not specs then
 else
   local _spec = {}
   local maxid = 0
-  if specs:sub(-1) ~= ";" then specs = specs .. ";" end
-  for id, entry in specs:gmatch("(%d+):([^;]+);") do
+  if specs:sub(-1) ~= ":" then specs = specs .. ":" end
+  for id, entry in specs:gmatch("(%d+):([^:]+):") do
     id = tonumber(id)
     maxid = math.max(id, maxid)
     local sopts = {}
