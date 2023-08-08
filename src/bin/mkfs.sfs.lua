@@ -5,6 +5,7 @@ local args, opts, usage = require("getopt").process {
   {"Filesystem label", "LABEL", "l", "label"},
   {"Override block size", "SIZE", "b", "bs", "blocksize"},
   {"Override file count", "COUNT", "f", "files"},
+  {"Erase whole volume", false, "e", "erase"},
   {"Format mounted filesystem (DANGEROUS)", false, "F", "force"},
   {"I know what I'm doing, don't prompt me", false, "i-know-what-im-doing"},
   {"Show this help message", false, "h", "help"},
@@ -162,9 +163,9 @@ local function format()
   end
   hd:seek("set")
   local sblk, snl, sbmap = getOptimalSizes(size)
-  print("formatting as SimpleFS")
+  print("formatting "..device.." as SimpleFS")
   print("block size: " .. sblk)
-  print("file count: " .. snl/64)
+  print("file count: " .. math.floor(snl/64))
   print("block count: " .. sbmap*8)
   print("writing superblock...")
   local reserve = math.ceil(snl/sblk + 1 + sbmap/sblk)

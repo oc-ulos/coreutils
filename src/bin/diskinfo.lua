@@ -96,11 +96,11 @@ local function recognize(d, hand, start, size)
               size = meta[info[5]]
             }
           end
-        until #sector == 0
-        print(string.format("%s: table=%s, name=%s", args[i], name))
+        until #sector <= string.packsize(info[3])
+        print(string.format("%s: table=%s, name=%s", d, name, data[info[7]]))
         for i=1, #partitions do
           io.write("  ")
-          recognize(d..i, hand, partitions[i],
+          recognize(d..i, hand,
             partitions[i].start, partitions[i].size)
         end
         break
