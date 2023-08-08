@@ -109,9 +109,9 @@ local function getOptimalSizes(fssize)
   -- maximum ACTUAL number of blocks is 16777216 so use that instead
   blocksize = opts.b or math.ceil(fssize/0xFFFFFF)*1024
   -- we want no more files than blocks, so set namelist size based on that
-  local nl_size = opts.f or (fssize/blocksize)*64
+  local nl_size = math.floor(opts.f or (fssize/blocksize)*64)
   -- determine blockmap size from block count
-  local bmap_size = fssize/blocksize/8
+  local bmap_size = math.floor(fssize/blocksize/8)
   return blocksize, nl_size, bmap_size
 end
 
@@ -164,8 +164,8 @@ local function format()
   local sblk, snl, sbmap = getOptimalSizes(size)
   print("formatting as SimpleFS")
   print("block size: " .. sblk)
-  print("file count: " .. math.floor(snl/64))
-  print("block count: " .. math.floor(sbmap*8))
+  print("file count: " .. snl/64)
+  print("block count: " .. sbmap*8)
   print("writing superblock...")
   local reserve = math.ceil(snl/sblk + 1 + sbmap/sblk)
   print("reserving " .. reserve .. " blocks (overhead " ..
@@ -174,9 +174,9 @@ local function format()
     signature = "\x1bSFS",
     flags = 0,
     revision = 0,
-    nl_blocks = snl/sblk,
+    nl_blocks = math.floor(snl/sblk),
     blocksize = sblk,
-    blocks = math.min(sbmap*8, (size/sblk)),
+    blocks = math.min(sbmap*8, math.floor(size/sblk)),
     blocks_used = reserve,
     label = opts.l or
       "simplefs-"..math.floor(math.random(1000000000, 9999999999))

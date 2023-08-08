@@ -42,15 +42,15 @@ end
 if #args == 0 then showusage() end
 
 local count = opts.c or 0
-local spec = opts.p
-if not spec then
+local specs = opts.p
+if not specs then
   io.stderr:write("mkpart: warning: no partition spec provided, creating blank table\n")
-  spec = {}
+  specs = {}
 else
   local _spec = {}
   local maxid = 0
-  if spec:sub(-1) ~= ";" then spec = spec .. ";" end
-  for id, entry in spec:gmatch("(%d+):([^;]+);") do
+  if specs:sub(-1) ~= ";" then specs = specs .. ";" end
+  for id, entry in specs:gmatch("(%d+):([^;]+);") do
     id = tonumber(id)
     maxid = math.max(id, maxid)
     local sopts = {}
@@ -63,7 +63,7 @@ else
     io.stderr:write("mkpart: invalid spec: non-continuous partition IDs\n")
     os.exit(1)
   end
-  spec = _spec
+  specs = _spec
 end
 
 -- TODO: support mtpt as well
@@ -77,8 +77,8 @@ local offset = 1
 local totalSize = 0
 local undefinedSize = 0
 
-for i=1, #spec do
-  local spec = spec[i]
+for i=1, #specs do
+  local spec = specs[i]
   if not spec.type then
     io.stderr:write("mkpart: partition ", i, " is missing partition type\n")
     os.exit(2)
@@ -116,17 +116,19 @@ end
 
 local size = hand:seek("end")/sectorsize - 1
 
-for i=1, #spec do
-  local spec = spec[i]
+for i=1, #specs do
+  local spec = specs[i]
   if not spec.size then
     spec.size = math.floor((size-totalSize)/undefinedSize)
-    io.stderr:write("mkpart: assigned size ", spec.size/2, "K to partition ", i, "\n")
   end
   local label = spec.label or "osdi"..i
+  io.stderr:write("mkpart: partition '", label, "' size=", spec.size/2, "K\n")
   local start = offset
   offset = offset + spec.size
+  print(#parttable)
   parttable = parttable .. pack_format:pack(
     start, spec.size, spec.type, "", label)
+  print(#parttable)
 end
 
 if #parttable > sectorsize then
@@ -137,12 +139,15 @@ end
 
 hand:seek("set")
 hand:write(parttable)
+hand:close()
 
+local sys = require("syscalls")
+local fd = sys.open(args[1], "r")
 io.stderr:write("mkpart: telling kernel to reread partition table\n")
-local ok, err = require("syscalls").ioctl(require("posix.stdio").fileno(hand), "reregister")
+local ok, err = sys.ioctl(fd, "reregister")
 if not ok then
   io.stderr:write("mkpart: WARNING: reregister failed: ", require("posix.errno").errno(err), "\n")
   io.stderr:write("you may need to restart for partition table changes to take effect\n")
 end
 
-hand:close()
+sys.close(fd)
