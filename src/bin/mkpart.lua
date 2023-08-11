@@ -7,7 +7,8 @@ local args, opts, usage = require("getopt").process {
   {"Whole disk label", "LABEL", "l", "label"},
   {"Set partition properties", "SPEC", "p", "partition", "spec"},
   {"Specify non-standard sector size", "BYTES", "s", "sector-size"},
-  {"Do not prompt about partition erasure", "f", "force"},
+  {"Do not prompt about partition erasure", false, "f", "force"},
+  {"Fully erase the drive", false, "e", "erase"},
   {"Show this help and exit", false, "h", "help"},
   help_message = "pass '--help' for help\n",
   exit_on_bad_opt = true,
@@ -148,6 +149,15 @@ end
 
 hand:seek("set")
 hand:write(parttable)
+if opts.e then
+  io.stderr:write("erasing drive")
+  local chunk = ("\0"):rep(sectorsize)
+  for i=1, size do
+    if i%128==0 then io.stderr:write("."):flush() end
+    hand:write(chunk)
+  end
+  io.stderr:write("done\n")
+end
 hand:close()
 
 local sys = require("syscalls")

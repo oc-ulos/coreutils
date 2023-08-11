@@ -70,7 +70,7 @@ local disk_formats = {
       return m[1] == "\x1bSFS"
     end,
     function(m) -- formatter
-      return ("label='%s', files=%d, free=%s")
+      return ("type=simplefs, label='%s', files=%d, free=%s")
         :format(m[8], m[4]*(m[5]/64), sizes.format((m[6]-m[7])*m[5]))
     end
   },

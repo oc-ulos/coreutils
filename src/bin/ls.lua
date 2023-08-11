@@ -193,6 +193,7 @@ for i=1, #args, 1 do
 
   elseif stat.S_ISDIR(statx.st_mode) == 0 or opts.d then
     io.write(list(args[i]))
+    if i==#args and not opts.l then totalx=totalx+#args[i] end
 
   else
     local files = {}
