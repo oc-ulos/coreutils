@@ -33,6 +33,7 @@ partition options:
                 sectors, otherwise size is in KiB (1024).  Unused space is
                 divided evenly among partitions with no defined size.
   label=LABEL   set the partition label, if not given set to e.g. 'osdi1'
+  flags=A|B...  set partition flags
 
 Copyright (c) 2023 ULOS Developers under the GNU GPLv3.
 ]]):format(usage))
@@ -70,12 +71,13 @@ end
 local parttable = ""
 local sectorsize = tonumber(opts.s) or 512
 local magic = "OSDI\xAA\xAA\x55\x55"
-local pack_format = "<I4I4c8c3c13"
+local pack_format = "<I4I4c8I3c13"
 local label = opts.l or "osdi-"..math.floor(math.random(10000000,99999999))
-parttable = parttable .. pack_format:pack(1, 0, magic, "", label)
+parttable = parttable .. pack_format:pack(1, 0, magic, 0, label)
 local offset = 1
 local totalSize = 0
 local undefinedSize = 0
+local partflags = {active=0x200}
 
 for i=1, #specs do
   local spec = specs[i]
@@ -94,8 +96,17 @@ for i=1, #specs do
       os.exit(2)
     end
   elseif spec.size then
-    spec.size = spec.size * sectorsize
+    spec.size = spec.size * 2
     totalSize = totalSize + spec.size
+  end
+  if spec.flags then
+    local flags = 0
+    for flag in spec.flags:gmatch("[^|]+") do
+      flags = flags | (partflags[flag] or 0)
+    end
+    spec.flags = flags
+  else
+    spec.flags = 0
   end
 end
 
@@ -126,7 +137,7 @@ for i=1, #specs do
   local start = offset
   offset = offset + spec.size
   parttable = parttable .. pack_format:pack(
-    start, spec.size, spec.type, "", label)
+    start, spec.size, spec.type, spec.flags, label)
 end
 
 if #parttable > sectorsize then

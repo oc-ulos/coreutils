@@ -114,7 +114,7 @@ local function recognize(d, hand, start, size)
     end
   end
   if not found then
-    io.stderr:write("diskinfo: ", args[i], ": not recognized\n")
+    io.write(d, ": not recognized\n")
   end
 end
 
