@@ -73,6 +73,7 @@ repeat
     isize = math.max(isize or 0, written)
   end
   if opts.s and blocksWritten % 10 == 0 or blocksWritten == opts.c or not block then
+    if opts.s and blocksWritten > 10 then io.stderr:write("\27[A") end
     io.stderr:write(("bytes written: %q/%q\n"):format(written,isize))
   end
 until blocksWritten >= opts.c or (not block) or #block == 0

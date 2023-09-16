@@ -97,7 +97,7 @@ local function recognize(d, hand, start, size)
             }
           end
         until #sector <= string.packsize(info[3])
-        print(string.format("%s: table=%s, name=%s", d, name, data[info[7]]))
+        print(string.format("%s: %s, table=%s, name=%s", d, sizes.format(size), name, data[info[7]]))
         for i=1, #partitions do
           io.write("  ")
           recognize(d..i, hand,
@@ -108,13 +108,13 @@ local function recognize(d, hand, start, size)
     else
       if info[4](data) then
         found = true
-        print(d..": "..info[5](data))
+        print(d..": "..sizes.format(size*512)..", "..info[5](data))
         break
       end
     end
   end
   if not found then
-    io.write(d, ": not recognized\n")
+    print(d..": "..sizes.format(size*512)..", unrecognized")
   end
 end
 
@@ -124,7 +124,9 @@ for i=1, #args do
     io.stderr:write("diskinfo: ", err, "\n")
     os.exit(1)
   end
-  recognize(args[i], hand)
+  local size = hand:seek("end")
+  hand:seek("set")
+  recognize(args[i], hand, nil, size)
   hand:close()
 end
 

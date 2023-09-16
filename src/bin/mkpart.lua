@@ -78,7 +78,7 @@ parttable = parttable .. pack_format:pack(1, 0, magic, 0, label)
 local offset = 1
 local totalSize = 0
 local undefinedSize = 0
-local partflags = {active=0x200}
+local partflags = {boot=0x200,active=0x200}
 
 for i=1, #specs do
   local spec = specs[i]
@@ -103,6 +103,9 @@ for i=1, #specs do
   if spec.flags then
     local flags = 0
     for flag in spec.flags:gmatch("[^|]+") do
+      if not partflags[flag] then
+        io.stderr:write("mkpart: WARNING: invalid flag '" .. flag, "'\n")
+      end
       flags = flags | (partflags[flag] or 0)
     end
     spec.flags = flags
