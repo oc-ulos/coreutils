@@ -67,7 +67,7 @@ local structures = {
     names = {"signature", "flags", "revision", "nl_blocks", "blocksize", "blocks", "blocks_used", "label"}
   },
   nl_entry = {
-    pack = "<I2I2I2I2I2I4I8I8I2I2c30",
+    pack = "<I2I2I2I2I2I4I8I8I2I2c94",
     names = {"flags", "datablock", "next_entry", "last_entry", "parent", "size", "created", "modified", "uid", "gid", "fname"}
   },
 }
@@ -110,7 +110,7 @@ local function getOptimalSizes(fssize)
   -- maximum ACTUAL number of blocks is 16777216 so use that instead
   blocksize = opts.b or math.ceil(fssize/0xFFFFFF)*1024
   -- we want no more files than blocks, so set namelist size based on that
-  local nl_size = math.floor(opts.f or (fssize/blocksize)*64)
+  local nl_size = math.floor(opts.f or (fssize/blocksize)*128)
   -- determine blockmap size from block count
   local bmap_size = math.floor(fssize/blocksize/8)
   return blocksize, nl_size, bmap_size
@@ -143,11 +143,11 @@ end
 
 local function writeNamelistEntry(n, ent)
   local data = pack("nl_entry", ent)
-  local offset = n * 64 % 512
+  local offset = n * 128 % 512
   local block = math.floor(n/8)
   -- superblock is first block, blockmap is second, namelist comes after those
   local blockData = readBlock(block+constants.namelist)
-  blockData = blockData:sub(0, offset)..data..blockData:sub(offset + 65)
+  blockData = blockData:sub(0, offset)..data..blockData:sub(offset + 129)
   writeBlock(block+constants.namelist, blockData)
 end
 
@@ -165,7 +165,7 @@ local function format()
   local sblk, snl, sbmap = getOptimalSizes(size)
   print("formatting "..device.." as SimpleFS")
   print("block size: " .. sblk)
-  print("file count: " .. math.floor(snl/64))
+  print("file count: " .. math.floor(snl/128))
   print("block count: " .. sbmap*8)
   print("writing superblock...")
   local reserve = math.ceil(snl/sblk + 1 + sbmap/sblk)
