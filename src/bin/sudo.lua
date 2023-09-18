@@ -23,6 +23,7 @@ local args, opts, usage = getopt.process {
   {"display this help message", false, "h", "help"},
   exit_on_bad_opt = true,
   allow_finish = true,
+  finish_after_arg = true,
   help_message = "pass '--help' for help\n",
   args = ...
 }
@@ -124,7 +125,11 @@ local function act(func)
     stdlib.setenv("UID", tostring(pwent.pw_uid))
     stdlib.setenv("GID", tostring(pwent.pw_gid))
     stdlib.setenv("SHELL", pwent.pw_shell or "/bin/sh.lua")
-    func()
+    local result, err = func()
+    if not result and err then
+      io.stderr:write("sudo: ", tostring(err), "\n")
+      os.exit(1)
+    end
     os.exit(0)
   end)
   local _, _, status = wait.wait(pid)
@@ -186,7 +191,7 @@ if password == oent.pw_passwd then
     end
   else
     act(function()
-      unistd.execp(args[1], table.unpack(args, 2))
+      unistd.execp(args[1], {table.unpack(args, 2)})
     end)
   end
 else

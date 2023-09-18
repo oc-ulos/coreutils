@@ -47,7 +47,7 @@ local args, opts = require("getopt").getopt({
 opts.h = opts.h or opts.help
 opts.D = opts.D or opts.defaults
 
-if (#args == 0 and not opts.D) or opts.h or not (opts.D or opts.u) then
+if (#args == 0 and not opts.D) or opts.h then
   io.stderr:write(help)
   os.exit(1)
 end
