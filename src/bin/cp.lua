@@ -5,6 +5,7 @@ local tree = require("treeutil").tree
 local getopt = require("getopt")
 local libgen = require("posix.libgen")
 local stdlib = require("posix.stdlib")
+local errno = require("posix.errno")
 local stat = require("posix.sys.stat")
 
 local options, usage, condense = getopt.build {
@@ -94,9 +95,13 @@ if #args > 1 and not destIsDir then
 end
 
 local function tryMkdir(f)
-  local ok, err = stat.mkdir(f, 511)
-  if not ok then
-    exit("cannot create directory ", f, ": ", err, "\n")
+  local cur = ""
+  for segment in f:gmatch("[^/]+") do
+    cur = cur .. segment .. "/"
+    local ok, err, eno = stat.mkdir(cur, 511)
+    if not ok and eno ~= errno.EEXIST then
+      exit("cannot create directory ", f, ": ", err, "\n")
+    end
   end
 end
 
@@ -117,13 +122,14 @@ local function cp(f)
     tryMkdir(dest)
 
     tree(file, nil, function(thing)
-      local new = (dest .. "/" .. thing:sub(#file + 1)):gsub("/+", "/")
+      local new = (dest .. "/" .. thing):gsub("/+", "/")
       local tstatx = stat.stat(thing)
 
       if stat.S_ISDIR(tstatx.st_mode) == 1 then
         tryMkdir(new)
 
       else
+        tryMkdir(libgen.dirname(new))
         local ok, err = copy(thing, new)
         if not ok then exit(err, "\n") end
       end

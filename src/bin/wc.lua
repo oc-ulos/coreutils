@@ -11,7 +11,9 @@ local args, opts = require("getopt").getopt({
   help_message = "see '" .. argv[0] .. " --help' for more information.\n"
 }, argv)
 
-if #args == 0 or opts.help then
+if #args == 0 then args[1] = "-" end
+
+if opts.help then
   io.stderr:write(([[
 usage: %s [-lcw] FILE ...
 Print line, word, and character (byte) counts from all given FILEs.
@@ -33,9 +35,14 @@ if not (opts.l or opts.w or opts.c) then
 end
 
 local function wc(file)
-  local handle, err = io.open(file, "r")
-  if not handle then
-    return nil, err
+  local handle, err
+  if file == "-" then
+    handle = io.stdin
+  else
+    handle, err = io.open(file, "r")
+    if not handle then
+      return nil, err
+    end
   end
 
   local data = handle:read("a")
