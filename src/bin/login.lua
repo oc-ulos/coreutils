@@ -8,7 +8,7 @@ local unistd = require("posix.unistd")
 local stdlib = require("posix.stdlib")
 
 local uname = sys.uname()
-io.stdout:write("\27[m\27[2J\27[H\n", uname.sysname, " ", uname.release, "\n")
+io.stdout:write("\27[m\n", uname.sysname, " ", uname.release, "\n")
 
 if sys.getuid() ~= 0 then
   io.stderr:write("login: refusing to run as non-root user\n")
