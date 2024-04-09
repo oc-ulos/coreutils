@@ -39,7 +39,7 @@ end
 
 local uname = require("posix.sys.utsname").uname()
 local function print_issue(line, tty)
-  line = line:gsub("%u", {
+  line = line:gsub("\\%a", {
     ["\\s"] = uname.sysname,
     ["\\l"] = args[1] or "tty1",
     ["\\r"] = uname.release,
@@ -92,7 +92,7 @@ end
 
 if not opts.c then
   -- set up the tty
-  sys.write(tty_fd, "\27c")
+  sys.write(tty_fd, "\27c\27[20h")
 end
 
 if not opts.J then

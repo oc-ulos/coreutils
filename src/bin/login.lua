@@ -34,10 +34,11 @@ while #name == 0 do
 end
 
 local pwent = pwd.getpwnam(name)
+local password
 if not opts.f then
   io.stdout:write("Password: ")
   sys.ioctl(0, "stty", {echo = false})
-  local password = io.stdin:read("l")
+  password = io.stdin:read("l")
   sys.ioctl(0, "stty", {echo = true})
   io.stdout:write("\n")
 end
