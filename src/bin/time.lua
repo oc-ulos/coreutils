@@ -14,8 +14,10 @@ local pid, err = sys.fork(function()
   assert(unistd.execp(argv[0], argv))
 end)
 
-if not pid then print(err) return end
-
-local a, b, c = wait.wait(pid)
+if not pid then
+  io.stderr:write(err)
+else
+  local a, b, c = wait.wait(pid)
+end
 
 print("real", sys.uptime() - uptime)
