@@ -30,7 +30,7 @@ local function read(hand, n, start, _size)
   if n == 0 then error"bad sector offset: 0" end
   if n < 0 then
     local size = hand:seek("end")/512
-    n = (math.min(start+_size, size) + n)*512
+    n = (math.min(start+_size-1, size) + n)*512
   else
     n = (n-1+start)*512
   end
@@ -101,14 +101,14 @@ local function recognize(d, hand, start, size)
         for i=1, #partitions do
           io.write("  ")
           recognize(d..i, hand,
-            partitions[i].start, partitions[i].size)
+            partitions[i].start-1, partitions[i].size)
         end
         break
       end
     else
       if info[4](data) then
         found = true
-        print(d..": "..sizes.format(size*512)..", "..info[5](data))
+        print(d..": "..sizes.format(size)..", "..info[5](data))
         break
       end
     end

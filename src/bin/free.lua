@@ -63,5 +63,5 @@ elseif opts.m then
   free = string.format("%.1f", free / power / power) .. " M" .. suffix
 end
 
-io.write("  total    /    used    /    free\n")
-io.write(("%10s / %10s / %10s\n"):format(total, used, free))
+io.write("total       / used       / free\n")
+io.write(("%11s / %10s / %10s\n"):format(total, used, free))

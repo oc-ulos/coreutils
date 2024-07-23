@@ -54,6 +54,7 @@ local function rm(file)
       success = true
 
       for _file in dirent.files(file) do
+        print("REMOVE " .. _file)
         rm(file.."/".._file)
       end
     end
