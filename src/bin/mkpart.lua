@@ -75,7 +75,7 @@ local magic = "OSDI\xAA\xAA\x55\x55"
 local pack_format = "<I4I4c8I3c13"
 local label = opts.l or "osdi-"..math.floor(math.random(10000000,99999999))
 parttable = parttable .. pack_format:pack(1, 0, magic, 0, label)
-local offset = 1
+local offset = 2
 local totalSize = 0
 local undefinedSize = 0
 local partflags = {boot=0x200,active=0x200}
