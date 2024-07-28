@@ -10,6 +10,7 @@ local args, opts, usage = require("getopt").process {
   {"Automatically login a user", "NAME", "a", "autologin"},
   {"Do not display /etc/issue", false, "i", "noissue"},
   {"Do not clear the screen", false, "J", "noclear"},
+  {"Use this instead of /bin/login", "FILE", "l", "login", "login-program"},
   {"Do not prompt for a login name", false, "n", "skip-login"},
   {"No newline before printing /etc/issue", false, "N", "nonewline"},
   {"Change root to the given directory", "DIRECTORY", "r", "chroot"},
