@@ -32,7 +32,7 @@ local function read(hand, n, start, _size)
     local size = hand:seek("end")/512
     n = (math.min(start+_size-1, size) + n)*512
   else
-    n = (n-1+start)*512
+    n = (n-1+start-1)*512
   end
   hand:seek("set",n)
   return hand:read(512)
