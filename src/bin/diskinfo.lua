@@ -32,7 +32,7 @@ local function read(hand, n, start, _size)
     local size = hand:seek("end")/512
     n = (math.min(start+_size, size) + n)*512
   else
-    n = (n-1+start)*512
+    n = (n-1+start-1)*512
   end
   hand:seek("set",n)
   return hand:read(512)
@@ -108,7 +108,7 @@ local function recognize(d, hand, start, size)
     else
       if info[4](data) then
         found = true
-        print(d..": "..sizes.format(size*512)..", "..info[5](data))
+        print(d..": "..sizes.format(size)..", "..info[5](data))
         break
       end
     end
