@@ -123,7 +123,9 @@ if opts.a then
   login_cmd[#login_cmd+1] = "-f"
 end
 
-if not opts.n then
+if opts.a then
+  sys.write(tty_fd, "login: " .. name .. "\n")
+elseif not opts.n then
   name = ""
   while #name == 0 do
     sys.write(tty_fd, "login: ")
