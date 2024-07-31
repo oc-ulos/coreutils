@@ -1,0 +1,27 @@
+name: Publish Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release
+
+jobs:
+  build-and-push-package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Build and publish
+        uses: oc-ulos/upt-packager@release
+        with:
+          repo: core
+          pkgname: coreutils
+          push_url: ${{ secrets.package_push_url }}/core
+          push_identity: ${{ secrets.package_push_identity }}
